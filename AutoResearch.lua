@@ -5,6 +5,7 @@ AutoResearch = {
     author = "|c99CCEFsilvereyes|r",
 }
 local self = AutoResearch
+local libLazyCraftingName = "LibLazyCrafting"
 local function DiscoverResearchableTraits(craftSkill, researchLineIndex)
     
     -- Get the total number of traits in the research line
@@ -93,11 +94,19 @@ local function ResearchItem(bagId, slotIndex)
 end
 local function End()
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_STARTED)
-    ZO_AlertNoSuppression = self.originalAlert
+end
+local function TryWritCreator()
+	d("Trying writ creator")
+	End()
+	if WritCreator then 
+		local lazyCrafting = LibStub:GetLibrary(libLazyCraftingName)
+		lazyCrafting.craftInteract(EVENT_CRAFTING_STATION_INTERACT, 
+		                           self.currentCraftSkill)
+	end
 end
 local function ResearchNext(craftSkill)
     if self.currentResearchCount >= self.maxResearchCount then
-        End()
+		TryWritCreator()
         return
     end
     
@@ -151,7 +160,7 @@ local function ResearchNext(craftSkill)
         self.researchableTraits[maxResearchLineIndex] = nil
     end
     
-    End()
+    TryWritCreator()
 end
 
 local function OnSmithingTraitResearchStarted(eventCode, craftSkill, researchLineIndex, traitIndex)
@@ -163,19 +172,11 @@ local function OnSmithingTraitResearchStarted(eventCode, craftSkill, researchLin
     -- Try to research the next slot
     ResearchNext(craftSkill)
 end
-local function AlertNoSuppression(category, soundName, stringId)
-    if stringId == SI_SMITHING_BLACKSMITH_EXTRACTION_FAILED
-       or stringId == SI_SMITHING_CLOTHIER_EXTRACTION_FAILED
-       or stringId == SI_SMITHING_WOODWORKING_EXTRACTION_FAILED
-    then
-        return
-    end
-    return self.originalAlert(category, soundName, stringId)
-end
 local function Start(eventCode, craftSkill, sameStation) 
     --d("OnCraftingStationInteract("..tostring(eventCode)..", "..tostring(craftSkill)..", "..tostring(sameStation))   
     -- The number of research slots used for the current craft skill
     self.currentResearchCount = 0
+    self.currentCraftSkill = craftSkill
     
     -- Max number of research slots based on passives
     self.maxResearchCount = GetMaxSimultaneousSmithingResearch(craftSkill)
@@ -196,8 +197,6 @@ local function Start(eventCode, craftSkill, sameStation)
             end
         end
     end
-    self.originalAlert = ZO_AlertNoSuppression
-    ZO_AlertNoSuppression = AlertNoSuppression
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_STARTED, 
                                    OnSmithingTraitResearchStarted)
     ResearchNext(craftSkill)
@@ -206,6 +205,11 @@ local function OnAddonLoaded(event, name)
     if name ~= self.name then return end
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_ADD_ON_LOADED)
     
+    -- Defer our writ laziness until after done researching
+    if WritCreator then
+		d("Unregistering "..libLazyCraftingName)
+		EVENT_MANAGER:UnregisterForEvent(libLazyCraftingName, EVENT_CRAFTING_STATION_INTERACT)
+    end
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CRAFTING_STATION_INTERACT, Start)
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_END_CRAFTING_STATION_INTERACT, End)
 end
