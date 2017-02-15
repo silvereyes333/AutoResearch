@@ -1,11 +1,31 @@
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "1.0.0",
+    version = "1.1.0",
     author = "|c99CCEFsilvereyes|r",
 }
 local self = AutoResearch
 local libLazyCraftingName = "LibLazyCrafting"
+local researchableCraftSkills = {
+    [CRAFTING_TYPE_BLACKSMITHING] = true,
+    [CRAFTING_TYPE_CLOTHIER]      = true,
+    [CRAFTING_TYPE_WOODWORKING]   = true,
+}
+local cheapStyles = {
+    [ITEMSTYLE_RACIAL_HIGH_ELF]   = true,
+    [ITEMSTYLE_RACIAL_DARK_ELF]   = true,
+    [ITEMSTYLE_RACIAL_WOOD_ELF]   = true,
+    [ITEMSTYLE_RACIAL_NORD]       = true,
+    [ITEMSTYLE_RACIAL_BRETON]     = true,
+    [ITEMSTYLE_RACIAL_REDGUARD]   = true,
+    [ITEMSTYLE_RACIAL_KHAJIIT]    = true,
+    [ITEMSTYLE_RACIAL_ORC]        = true,
+    [ITEMSTYLE_RACIAL_ARGONIAN]   = true,
+    [ITEMSTYLE_RACIAL_IMPERIAL]   = true,
+    [ITEMSTYLE_AREA_ANCIENT_ELF]  = true,
+    [ITEMSTYLE_AREA_REACH]        = true,
+    [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
+}
 local function DiscoverResearchableTraits(craftSkill, researchLineIndex)
     
     -- Get the total number of traits in the research line
@@ -65,7 +85,11 @@ local function GetResearchableItem(inventoryType, craftSkill, researchLineIndex)
     while slotIndex do
         local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
         local quality = GetItemLinkQuality(itemLink)
-        if quality < ITEM_QUALITY_ARCANE and not  IsItemPlayerLocked(bagId, slotIndex) then
+        local itemStyle = GetItemLinkItemStyle(itemLink)
+        local hasSet = GetItemLinkSetInfo(itemLink)
+        if quality < ITEM_QUALITY_ARTIFACT and not IsItemPlayerLocked(bagId, slotIndex)
+           and cheapStyles[itemStyle] and not hasSet
+        then
             for i = 1, #self.researchableTraits[researchLineIndex] do
                 local traitIndex = self.researchableTraits[researchLineIndex][i]
                 if not researchableItems[traitIndex] 
@@ -90,23 +114,21 @@ local function ResearchItem(bagId, slotIndex)
     local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
     d("Researching "..tostring(itemLink).." ("..tostring(traitName)..")")
     ResearchSmithingTrait(bagId, slotIndex)
-    --EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_STARTED)
 end
 local function End()
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_STARTED)
 end
-local function TryWritCreator()
-	d("Trying writ creator")
+local function TryWritCreator(craftSkill)
 	End()
-	if WritCreator then 
-		local lazyCrafting = LibStub:GetLibrary(libLazyCraftingName)
-		lazyCrafting.craftInteract(EVENT_CRAFTING_STATION_INTERACT, 
-		                           self.currentCraftSkill)
+	if WritCreater then 
+        EVENT_MANAGER:RegisterForEvent(WritCreater.name, EVENT_CRAFT_COMPLETED, 
+                                       WritCreater.craftCompleted)
+        WritCreater.craftCheck(1, craftSkill)
 	end
 end
 local function ResearchNext(craftSkill)
     if self.currentResearchCount >= self.maxResearchCount then
-		TryWritCreator()
+		TryWritCreator(craftSkill)
         return
     end
     
@@ -139,7 +161,7 @@ local function ResearchNext(craftSkill)
         -- A slot specific slot index was returned, so research it
         if type(bankResearchables) == "number" then
             local slotIndex = bankResearchables
-            ResearchItem(BAG_BACKPACK, slotIndex)
+            ResearchItem(BAG_BANK, slotIndex)
             return
         end
         
@@ -153,14 +175,14 @@ local function ResearchNext(craftSkill)
                 return
             elseif bankResearchables[traitIndex] then
                 local slotIndex = bankResearchables[traitIndex]
-                ResearchItem(BAG_BACKPACK, slotIndex)
+                ResearchItem(BAG_BANK, slotIndex)
                 return
             end
         end
         self.researchableTraits[maxResearchLineIndex] = nil
     end
     
-    TryWritCreator()
+    TryWritCreator(craftSkill)
 end
 
 local function OnSmithingTraitResearchStarted(eventCode, craftSkill, researchLineIndex, traitIndex)
@@ -173,6 +195,12 @@ local function OnSmithingTraitResearchStarted(eventCode, craftSkill, researchLin
     ResearchNext(craftSkill)
 end
 local function Start(eventCode, craftSkill, sameStation) 
+    -- Filter out any non-researchable craft skill lines
+    if not researchableCraftSkills[craftSkill] then
+        TryWritCreator(craftSkill)
+        return
+    end
+        
     --d("OnCraftingStationInteract("..tostring(eventCode)..", "..tostring(craftSkill)..", "..tostring(sameStation))   
     -- The number of research slots used for the current craft skill
     self.currentResearchCount = 0
@@ -193,6 +221,7 @@ local function Start(eventCode, craftSkill, sameStation)
         if DiscoverResearchableTraits(craftSkill, researchLineIndex) then
             -- A true response means the research line already has a trait being researched
             if self.currentResearchCount >= self.maxResearchCount then
+                TryWritCreator(craftSkill)
                 return
             end
         end
@@ -206,9 +235,9 @@ local function OnAddonLoaded(event, name)
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_ADD_ON_LOADED)
     
     -- Defer our writ laziness until after done researching
-    if WritCreator then
-		d("Unregistering "..libLazyCraftingName)
-		EVENT_MANAGER:UnregisterForEvent(libLazyCraftingName, EVENT_CRAFTING_STATION_INTERACT)
+    if WritCreater then
+        EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFTING_STATION_INTERACT)
+        EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFT_COMPLETED)
     end
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CRAFTING_STATION_INTERACT, Start)
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_END_CRAFTING_STATION_INTERACT, End)
