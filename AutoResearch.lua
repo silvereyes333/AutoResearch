@@ -1,7 +1,7 @@
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "1.2.0",
+    version = "1.2.1",
     author = "|c99CCEFsilvereyes|r",
 }
 local self = AutoResearch
@@ -26,7 +26,26 @@ local cheapStyles = {
     [ITEMSTYLE_AREA_REACH]        = true,
     [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
 }
-ZO_CreateStringId("SI_AUTORESEARCH_INSUFFICIENT_STYLE_MATERIALS", "Insufficent style materials")
+local itemTraitTypeOrder = {
+    ITEM_TRAIT_TYPE_WEAPON_TRAINING,
+    ITEM_TRAIT_TYPE_ARMOR_TRAINING,
+    ITEM_TRAIT_TYPE_WEAPON_SHARPENED,
+    ITEM_TRAIT_TYPE_ARMOR_DIVINES,
+    ITEM_TRAIT_TYPE_WEAPON_PRECISE,
+    ITEM_TRAIT_TYPE_ARMOR_IMPENETRABLE,
+    ITEM_TRAIT_TYPE_WEAPON_DECISIVE,
+    ITEM_TRAIT_TYPE_ARMOR_INFUSED,
+    ITEM_TRAIT_TYPE_WEAPON_CHARGED,
+    ITEM_TRAIT_TYPE_ARMOR_STURDY,
+    ITEM_TRAIT_TYPE_WEAPON_DEFENDING,
+    ITEM_TRAIT_TYPE_ARMOR_WELL_FITTED,
+    ITEM_TRAIT_TYPE_WEAPON_INFUSED,
+    ITEM_TRAIT_TYPE_ARMOR_REINFORCED,
+    ITEM_TRAIT_TYPE_WEAPON_POWERED,
+    ITEM_TRAIT_TYPE_ARMOR_PROSPEROUS,
+    ITEM_TRAIT_TYPE_WEAPON_NIRNHONED,
+    ITEM_TRAIT_TYPE_ARMOR_NIRNHONED,
+}
 local function DiscoverResearchableTraits(craftSkill, researchLineIndex, returnAll)
     
     -- Get the total number of traits in the research line
@@ -267,13 +286,13 @@ local function EndCraft()
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_CRAFT_COMPLETED)
     self.craftGear = nil
     self.maxCraftCount = nil
+    self.traitTypeToIndexMap = nil
 end
-local function MarkTraitCrafted(patternIndex, traitIndex)
-    self.craftGear[patternIndex][traitIndex] = nil
+local function MarkTraitCrafted(patternIndex, itemTraitType)
+    self.craftGear[itemTraitType][patternIndex] = nil
     self.maxCraftCount = self.maxCraftCount - 1
-    if not next(self.craftGear[patternIndex]) then
-        --d("clearing out traits for research line index "..tostring(patternIndex))
-        self.craftGear[patternIndex] = nil
+    if not next(self.craftGear[itemTraitType]) then
+        self.craftGear[itemTraitType] = nil
     end
 end
 local function CraftNext()
@@ -291,31 +310,31 @@ local function CraftNext()
         return
     end
     
-    -- Check inventory for sufficient materials
-    local patternIndex = next(self.craftGear)
-    if not patternIndex then
-        EndCraft()
-        return
+    -- Look up the next trait and pattern
+    local itemTraitType
+    for i=1, #itemTraitTypeOrder do
+        if self.craftGear[itemTraitTypeOrder[i]] then
+            itemTraitType = itemTraitTypeOrder[i]
+            break
+        end
     end
-    --d("research line index: "..tostring(patternIndex))
-    local materialIndex = 1 -- always use the cheap stuff
-    local materialCount = GetCurrentSmithingMaterialItemCount(patternIndex, materialIndex)
-    local materialRequired = GetSmithingPatternNextMaterialQuantity(patternIndex, 
-                                                                    materialIndex, 1, 1)
-    if materialCount < materialRequired then
+    if not itemTraitType then
         EndCraft()
         return
     end
     
-    -- Check inventory for trait stone
-    local traitItemIndex = next(self.craftGear[patternIndex])
-    --d("trait item index: "..tostring(traitItemIndex))
-    local craftSkill = GetCraftingInteractionType()
-    local traitStoneCount = GetCurrentSmithingTraitItemCount(traitItemIndex)
-    if traitStoneCount == 0 then
-        d("no trait stones. patternIndex:"..tostring(patternIndex)..",traitIndex:"..tostring(traitItemIndex))
-        MarkTraitCrafted(patternIndex, traitItemIndex)
-        CraftNext()
+    local patternIndex = next(self.craftGear[itemTraitType])
+    
+    -- Check inventory for sufficient materials
+    local materialIndex = 1 -- always use the cheap stuff
+    local materialCount = GetCurrentSmithingMaterialItemCount(patternIndex, materialIndex)
+    local materialRequired = GetSmithingPatternNextMaterialQuantity(patternIndex, 
+                                                                    materialIndex, 1, 1)
+    local materialLink = GetSmithingPatternMaterialItemLink(patternIndex, materialIndex)
+    if materialCount < materialRequired then
+        d("You do not have the " .. tostring(materialRequired) .. "x " .. materialLink 
+          .. " required to continue crafting.")
+        EndCraft()
         return
     end
     
@@ -339,21 +358,33 @@ local function CraftNext()
     
     -- No cheap style materials found for any known styles
     if not selectedStyleItemIndex then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, 
-                 SI_AUTORESEARCH_INSUFFICIENT_STYLE_MATERIALS)
+        d("You do not have any inexpensive style stones for known motifs.")
         EndCraft()
         return
     end
     
-    local styleItemLink = GetSmithingStyleItemLink(selectedStyleItemIndex)
-    local materialLink = GetSmithingPatternMaterialItemLink(patternIndex, materialIndex)
-    local traitItemLink = GetSmithingTraitItemLink(traitItemIndex)
-    local itemLink = GetSmithingPatternResultLink(patternIndex, materialIndex, materialRequired, selectedStyleItemIndex, traitItemIndex)
-    --local itemStyleName = zo_strformat("<<1>>", GetString("SI_ITEMSTYLE", selectedItemStyle))
+    -- Check inventory for trait stone
+    local traitItemIndex = self.traitTypeToIndexMap[itemTraitType]
     local traitName = GetString("SI_ITEMTRAITTYPE", GetSmithingTraitItemInfo(traitItemIndex))
-    d("Crafting "..itemLink.." ("..traitName..") using "..tostring(materialRequired).."x "..materialLink..", "..styleItemLink.." and "..traitItemLink.."...")
+    local traitItemLink = GetSmithingTraitItemLink(traitItemIndex)
+    local itemLink = GetSmithingPatternResultLink(patternIndex, materialIndex, materialRequired, 
+                                                  selectedStyleItemIndex, traitItemIndex)
+    itemLink = itemLink .. " ("..traitName..")"
+    --d("trait item index: "..tostring(traitItemIndex))
+    local traitStoneCount = GetCurrentSmithingTraitItemCount(traitItemIndex)
+    if traitStoneCount == 0 then
+        d("You do not have any "..tostring(traitItemLink).." so you cannot craft "..itemLink)
+        MarkTraitCrafted(patternIndex, itemTraitType)
+        CraftNext()
+        return
+    end
+    
+    local styleItemLink = GetSmithingStyleItemLink(selectedStyleItemIndex)
+    --local itemStyleName = zo_strformat("<<1>>", GetString("SI_ITEMSTYLE", selectedItemStyle))
+    d("Crafting " .. itemLink .. " using " .. tostring(materialRequired) .. "x " .. materialLink
+      .. ", 1x " .. styleItemLink .. " and 1x " .. traitItemLink .. "...")
     -- Craft the item, at last
-    MarkTraitCrafted(patternIndex, traitItemIndex)
+    MarkTraitCrafted(patternIndex, itemTraitType)
     --CraftNext()
     CraftSmithingItem(patternIndex, materialIndex, materialRequired, 
                       selectedStyleItemIndex, traitItemIndex)
@@ -408,7 +439,6 @@ local function ResearchCraft(encoded)
             researchLineIndex = tonumber(part)
             local researchLineName = GetSmithingResearchLineInfo(craftSkill, researchLineIndex)
             patternIndex = nameToPatternMap[researchLineName]
-            self.craftGear[patternIndex] = {}
         else
             for splitPart in string.gmatch(part, '([^,]+)') do
                 local researchTraitIndex = tonumber(splitPart)
@@ -416,8 +446,10 @@ local function ResearchCraft(encoded)
         
                 -- Trait is known
                 if known then  
-                    local traitItemIndex = self.traitTypeToIndexMap[itemTraitType]
-                    self.craftGear[patternIndex][traitItemIndex] = true
+                    if not self.craftGear[itemTraitType] then
+                        self.craftGear[itemTraitType] = {}
+                    end
+                    self.craftGear[itemTraitType][patternIndex] = true
                 end
             end
         end
