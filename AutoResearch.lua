@@ -1,7 +1,7 @@
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "1.2.2",
+    version = "1.3.0",
     author = "|c99CCEFsilvereyes|r",
 }
 local self = AutoResearch
@@ -64,30 +64,21 @@ local function DiscoverResearchableTraits(craftSkill, researchLineIndex, returnA
     end
 end
 
-local function IsItemLocked(bagId, slotIndex)
-    if IsItemPlayerLocked(bagId, slotIndex) then
-        return true
-    end
-    
-    if FCOIS and FCOIS.callDeconstructionSelectionHandler(bagId, slotIndex, false, false, true, true, true, true, LF_SMITHING_RESEARCH)
-    then
+local function IsFcoisLocked(bagId, slotIndex)
+    if FCOIS and FCOIS.callDeconstructionSelectionHandler(bagId, slotIndex, false, false, true, true, true, true, LF_SMITHING_RESEARCH) then
         return true
     end
 end
 local function GetResearchableItem(inventoryType, craftSkill, researchLineIndex, returnAll)
     local inventory = PLAYER_INVENTORY.inventories[inventoryType]
-    local bagId = inventory.backingBag
-
-
+    local bagId = inventory.backingBag or inventory.backingBags[1] -- esoui 2.x and 3.x compatible
     local slotIndex = ZO_GetNextBagSlotIndex(bagId)
     local researchableItems = {}
-    local firstTraitIndex = self.researchableTraits[researchLineIndex][1]
     while slotIndex do
         local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
-        local quality = GetItemLinkQuality(itemLink)
-        local itemStyle = GetItemLinkItemStyle(itemLink)
+        local _, _, _, _, locked, _, itemStyle, quality = GetItemInfo(bagId, slotIndex)
         local hasSet = GetItemLinkSetInfo(itemLink)
-        if quality < ITEM_QUALITY_ARTIFACT and not IsItemPlayerLocked(bagId, slotIndex)
+        if quality < ITEM_QUALITY_ARTIFACT and not locked and not IsFcoisLocked(bagId, slotIndex)
            and cheapStyles[itemStyle] and not hasSet
         then
             for i = 1, #self.researchableTraits[researchLineIndex] do
