@@ -1,7 +1,7 @@
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "1.3.0",
+    version = "1.3.1",
     author = "|c99CCEFsilvereyes|r",
 }
 local self = AutoResearch
@@ -69,9 +69,7 @@ local function IsFcoisLocked(bagId, slotIndex)
         return true
     end
 end
-local function GetResearchableItem(inventoryType, craftSkill, researchLineIndex, returnAll)
-    local inventory = PLAYER_INVENTORY.inventories[inventoryType]
-    local bagId = inventory.backingBag or inventory.backingBags[1] -- esoui 2.x and 3.x compatible
+local function GetResearchableItem(bagId, craftSkill, researchLineIndex, returnAll)
     local slotIndex = ZO_GetNextBagSlotIndex(bagId)
     local researchableItems = {}
     while slotIndex do
@@ -127,6 +125,16 @@ local function TryWritCreator(craftSkill)
         end
 	end
 end
+local function ResearchNextFromBag(craftSkill, maxResearchLineIndex, bagId, researchables)
+    local bagResearchables = GetResearchableItem(bagId, craftSkill, maxResearchLineIndex)
+    -- A slot specific slot index was returned, so research it
+    if type(bagResearchables) == "number" then
+        local slotIndex = bagResearchables
+        ResearchItem(bagId, slotIndex)
+        return true
+    end
+    researchables[bagId] = bagResearchables
+end
 local function ResearchNext(craftSkill)
     if self.currentResearchCount >= self.maxResearchCount then
 		TryWritCreator(craftSkill)
@@ -146,36 +154,25 @@ local function ResearchNext(craftSkill)
             end
         end
         
-        local backpackResearchables = GetResearchableItem(INVENTORY_BACKPACK, craftSkill, 
-                                                          maxResearchLineIndex)
-        -- A slot specific slot index was returned, so research it
-        if type(backpackResearchables) == "number" then
-            local slotIndex = backpackResearchables
-            ResearchItem(BAG_BACKPACK, slotIndex)
+        local researchables = {}
+        if ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_BACKPACK, researchables) then
+            return
+        elseif ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_BANK, researchables) then
+            return
+        elseif BAG_SUBSCRIBER_BANK and ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_SUBSCRIBER_BANK, researchables) then
             return
         end
         
-        local bankResearchables = GetResearchableItem(INVENTORY_BANK, craftSkill, 
-                                                      maxResearchLineIndex)
-        -- A slot specific slot index was returned, so research it
-        if type(bankResearchables) == "number" then
-            local slotIndex = bankResearchables
-            ResearchItem(BAG_BANK, slotIndex)
-            return
-        end
-        
-        -- The first trait was a bust, so check the cache of backpack and bank researchables
+        -- The first trait was a bust, so check the cache of researchables
         -- for each of the other traits
         for i = 2, #self.researchableTraits[maxResearchLineIndex] do
             local traitIndex = self.researchableTraits[maxResearchLineIndex][i]
-            if backpackResearchables[traitIndex] then
-                local slotIndex = backpackResearchables[traitIndex]
-                ResearchItem(BAG_BACKPACK, slotIndex)
-                return
-            elseif bankResearchables[traitIndex] then
-                local slotIndex = bankResearchables[traitIndex]
-                ResearchItem(BAG_BANK, slotIndex)
-                return
+            for bagId, bagResearchables in pairs(researchables) do
+                if bagResearchables[traitIndex] then
+                    local slotIndex = bagResearchables[traitIndex]
+                    ResearchItem(bagId, slotIndex)
+                    return
+                end
             end
         end
         self.researchableTraits[maxResearchLineIndex] = nil
