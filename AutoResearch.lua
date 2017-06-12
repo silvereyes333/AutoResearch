@@ -1,7 +1,7 @@
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "1.3.1",
+    version = "1.4.0",
     author = "|c99CCEFsilvereyes|r",
 }
 local self = AutoResearch
@@ -64,8 +64,36 @@ local function DiscoverResearchableTraits(craftSkill, researchLineIndex, returnA
     end
 end
 
+local function IsFcoisResearchMarked(bagId, slotIndex)
+    if not FCOIS or not FCOIS.IsMarked then
+        return
+    end
+    if FCOIS.IsMarked(bagId, slotIndex, FCOIS_CON_ICON_RESEARCH) then
+        return true
+    end
+end
 local function IsFcoisLocked(bagId, slotIndex)
     if FCOIS and FCOIS.callDeconstructionSelectionHandler(bagId, slotIndex, false, false, true, true, true, true, LF_SMITHING_RESEARCH) then
+        return true
+    end
+end
+local function IsResearchable(bagId, slotIndex)
+    local _, _, _, _, locked, _, itemStyle, quality = GetItemInfo(bagId, slotIndex)
+    if locked then 
+        return 
+    end
+    if IsFcoisLocked(bagId, slotIndex) then
+        return
+    end
+    if IsFcoisResearchMarked(bagId, slotIndex) then
+        return true
+    end
+    local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
+    local hasSet = GetItemLinkSetInfo(itemLink)
+    if quality < ITEM_QUALITY_ARTIFACT 
+       and cheapStyles[itemStyle] 
+       and not hasSet
+    then
         return true
     end
 end
@@ -73,12 +101,7 @@ local function GetResearchableItem(bagId, craftSkill, researchLineIndex, returnA
     local slotIndex = ZO_GetNextBagSlotIndex(bagId)
     local researchableItems = {}
     while slotIndex do
-        local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
-        local _, _, _, _, locked, _, itemStyle, quality = GetItemInfo(bagId, slotIndex)
-        local hasSet = GetItemLinkSetInfo(itemLink)
-        if quality < ITEM_QUALITY_ARTIFACT and not locked and not IsFcoisLocked(bagId, slotIndex)
-           and cheapStyles[itemStyle] and not hasSet
-        then
+        if IsResearchable(bagId, slotIndex) then
             for i = 1, #self.researchableTraits[researchLineIndex] do
                 local traitIndex = self.researchableTraits[researchLineIndex][i]
                 if not researchableItems[traitIndex] 
