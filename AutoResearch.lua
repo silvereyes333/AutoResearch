@@ -1,8 +1,52 @@
+AUTORESEARCH_BAG_BACKPACK = 1
+AUTORESEARCH_BAG_BANK = 2
+AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
-    title = "Auto Research",
-    version = "1.4.0",
+    title = "|c99CCEFAuto Research|r",
+    version = "1.5.0",
     author = "|c99CCEFsilvereyes|r",
+    traitConfig = {
+        armor = {
+            name = SI_ITEMTYPE45,
+            min = 11,
+            max = 18,
+            nirn = 25,
+        },
+        weapons = {
+            name = SI_ITEMTYPE46,
+            min = 1,
+            max = 8,
+            nirn = 26,
+        }
+    },
+    defaults = {
+        bags = AUTORESEARCH_BAG_BOTH,
+        traitResearchOrder = {
+            ["weapons"] = {
+                ITEM_TRAIT_TYPE_WEAPON_SHARPENED,
+                ITEM_TRAIT_TYPE_WEAPON_PRECISE,
+                ITEM_TRAIT_TYPE_WEAPON_INFUSED,
+                ITEM_TRAIT_TYPE_WEAPON_DECISIVE,
+                ITEM_TRAIT_TYPE_WEAPON_CHARGED,
+                ITEM_TRAIT_TYPE_WEAPON_DEFENDING,
+                ITEM_TRAIT_TYPE_WEAPON_TRAINING,
+                ITEM_TRAIT_TYPE_WEAPON_POWERED,
+                ITEM_TRAIT_TYPE_WEAPON_NIRNHONED,
+            },
+            ["armor"] = {
+                ITEM_TRAIT_TYPE_ARMOR_DIVINES,
+                ITEM_TRAIT_TYPE_ARMOR_INFUSED,
+                ITEM_TRAIT_TYPE_ARMOR_IMPENETRABLE,
+                ITEM_TRAIT_TYPE_ARMOR_STURDY,
+                ITEM_TRAIT_TYPE_ARMOR_WELL_FITTED,
+                ITEM_TRAIT_TYPE_ARMOR_REINFORCED,
+                ITEM_TRAIT_TYPE_ARMOR_TRAINING,
+                ITEM_TRAIT_TYPE_ARMOR_PROSPEROUS,
+                ITEM_TRAIT_TYPE_ARMOR_NIRNHONED,
+            },
+        },
+    },
 }
 local self = AutoResearch
 local libLazyCraftingName = "LibLazyCrafting"
@@ -26,20 +70,44 @@ local cheapStyles = {
     [ITEMSTYLE_AREA_REACH]        = true,
     [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
 }
+function self.Print(input)
+    local output = zo_strformat("<<1>>|cFFFFFF: <<2>>|r", self.title, input)
+    d(output)
+end
+local function GetResearchCategory(craftSkill, researchLineIndex)
+    local traitType = GetSmithingResearchLineTraitInfo(craftSkill, researchLineIndex, 1)
+    for researchCategory, config in pairs(self.traitConfig) do
+        if traitType == config.nirn
+           or traitType >= config.min and traitType <= config.max
+        then
+            return researchCategory
+        end
+    end
+end
 local function DiscoverResearchableTraits(craftSkill, researchLineIndex, returnAll)
     
     -- Get the total number of traits in the research line
     local _, _, numTraits = GetSmithingResearchLineInfo(craftSkill, researchLineIndex)
     
     -- Range check
-    if numTraits <= 0 then return end
+    if numTraits <= 0 then return true end
+    
+    local researchCategory = GetResearchCategory(craftSkill, researchLineIndex)
+    if not researchCategory then return true end
     
     -- Initialize the traits array
     self.researchableTraits[researchLineIndex] = {}
     
-    for traitIndex = 1, numTraits do
-        local traitType, traitDescription, known = GetSmithingResearchLineTraitInfo(craftSkill, researchLineIndex, traitIndex)
-
+    for traitOrder = 1, numTraits do
+        local traitType = self.settings.traitResearchOrder[researchCategory][traitOrder]
+        local traitIndex
+        if traitType == self.traitConfig[researchCategory].nirn then
+            traitIndex = numTraits
+        else
+            traitIndex = traitType + 1 - self.traitConfig[researchCategory].min
+        end
+        local _, _, known = GetSmithingResearchLineTraitInfo(craftSkill, researchLineIndex, traitIndex)
+        
         -- Trait is known
         if not known then  
             local durationSecs = GetSmithingResearchLineTraitTimes(craftSkill, researchLineIndex, traitIndex)
@@ -123,7 +191,7 @@ local function ResearchItem(bagId, slotIndex)
     local itemLink = GetItemLink(bagId, slotIndex)
     local traitType = GetItemLinkTraitInfo(itemLink)
     local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
-    d("Researching "..tostring(itemLink).." ("..tostring(traitName)..")")
+    self.Print("Researching "..tostring(itemLink).." ("..tostring(traitName)..")")
     self.researching = true
     ResearchSmithingTrait(bagId, slotIndex)
 end
@@ -178,12 +246,20 @@ local function ResearchNext(craftSkill)
         end
         
         local researchables = {}
-        if ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_BACKPACK, researchables) then
+        
+        -- Try to research an item out of the backpack, if so configured
+        if (self.settings.bags == AUTORESEARCH_BAG_BACKPACK or self.settings.bags == AUTORESEARCH_BAG_BOTH) 
+           and ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_BACKPACK, researchables)
+        then
             return
-        elseif ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_BANK, researchables) then
-            return
-        elseif BAG_SUBSCRIBER_BANK and ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_SUBSCRIBER_BANK, researchables) then
-            return
+            
+        -- Try to research an item from the player bank, if so configured
+        elseif (self.settings.bags == AUTORESEARCH_BAG_BANK or self.settings.bags == AUTORESEARCH_BAG_BOTH) then
+            if ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_BANK, researchables) then
+                return
+            elseif ResearchNextFromBag(craftSkill, maxResearchLineIndex, BAG_SUBSCRIBER_BANK, researchables) then
+                return
+            end
         end
         
         -- The first trait was a bust, so check the cache of researchables
@@ -272,5 +348,7 @@ local function OnAddonLoaded(event, name)
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_END_CRAFTING_STATION_INTERACT, End)
     
     ZO_PreHook("ZO_AlertNoSuppression", OnAlertNoSuppression)
+    
+    self.SetupOptions()
 end
 EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)
