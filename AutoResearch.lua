@@ -4,7 +4,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.5.0",
+    version = "1.5.1",
     author = "|c99CCEFsilvereyes|r",
     traitConfig = {
         armor = {
@@ -141,14 +141,17 @@ local function IsFcoisResearchMarked(bagId, slotIndex)
     end
 end
 local function IsFcoisLocked(bagId, slotIndex)
-    if FCOIS and FCOIS.callDeconstructionSelectionHandler(bagId, slotIndex, false, false, true, true, true, true, LF_SMITHING_RESEARCH) then
+    if not FCOIS or not FCOIS.IsMarked then
+        return
+    end
+    if FCOIS.IsMarked(bagId, slotIndex, FCOIS_CON_ICON_LOCK) then
         return true
     end
 end
 local function IsResearchable(bagId, slotIndex)
     local _, _, _, _, locked, _, itemStyle, quality = GetItemInfo(bagId, slotIndex)
-    if locked then 
-        return 
+    if locked or itemStyle == ITEMSTYLE_NONE then 
+        return
     end
     if IsFcoisLocked(bagId, slotIndex) then
         return
