@@ -1,7 +1,7 @@
 ## Title: Auto Research
 ## Author: |c99CCEFsilvereyes|r
 ## Description: Automatically starts trait research when opening craft stations.
-## Version: 1.5.1
+## Version: 1.6.0
 ## APIVersion: 100019
 ## OptionalDependsOn: DolgubonsLazyWritCreator FCOItemSaver
 ## SavedVariables: AutoResearch_Data
@@ -14,6 +14,7 @@ lib\LibAddonMenu-2.0\LibAddonMenu-2.0.lua
 lib\LibAddonMenu-2.0\controls\dropdown.lua
 lib\LibAddonMenu-2.0\controls\header.lua
 lib\LibAddonMenu-2.0\controls\panel.lua
+lib\LibTimeout\LibTimeout.lua
 
 ; Language files
 localization\en.lua
@@ -22,3 +23,6 @@ localization\CreateStrings.lua
 
 AutoResearch.lua
 Settings.lua
+classes\LinkParser.lua
+classes\Validator.lua
+classes\ResearchQueue.lua
