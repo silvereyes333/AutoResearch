@@ -69,8 +69,18 @@ function self.SetupOptions()
         registerForDefaults = true,
     }
     LAM2:RegisterAddonPanel(self.name .. "Options", panelData)
+    
+    local qualityChoices = {}
+    local qualityChoicesValues = {}
+    for quality = ITEM_QUALITY_MIN_VALUE, ITEM_QUALITY_MAX_VALUE do
+        local qualityColor = GetItemQualityColor(quality)
+        local qualityString = qualityColor:Colorize(GetString("SI_ITEMQUALITY", quality))
+        table.insert(qualityChoicesValues, quality)
+        table.insert(qualityChoices, qualityString)
+    end
 
     local optionsTable = { 
+        -- Bags to search for equipment to research
         {
             type = "dropdown",
             width = "full",
@@ -91,7 +101,18 @@ function self.SetupOptions()
             getFunc = function() return self.settings.bags end,
             setFunc = function(value) self.settings.bags = value end,
             default = self.defaults.bags,
-        }
+        },
+        -- Max Quality
+        {
+            type = "dropdown",
+            width = "full",
+            choices = qualityChoices,
+            choicesValues = qualityChoicesValues,
+            name = GetString(SI_AUTORESEARCH_MAX_QUALITY),
+            getFunc = function() return self.settings.maxQuality end,
+            setFunc = function(value) self.settings.maxQuality = value end,
+            default = self.defaults.maxQuality,
+        },
     }
 
     for _, researchCategory in ipairs( { "armor", "weapons" } ) do

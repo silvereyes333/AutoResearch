@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.6.0",
+    version = "1.7.0",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor and weapon TraitType value ranges.
@@ -27,6 +27,7 @@ AutoResearch = {
     -- Option panel defaults
     defaults = {
         bags = AUTORESEARCH_BAG_BOTH,
+        maxQuality = ITEM_QUALITY_ARCANE,
         traitResearchOrder = {
             ["weapons"] = {
                 ITEM_TRAIT_TYPE_WEAPON_SHARPENED,

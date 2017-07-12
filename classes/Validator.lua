@@ -49,8 +49,10 @@ local invalidTraits = {
     [ITEM_TRAIT_TYPE_JEWELRY_ARCANE]   = true,
     [ITEM_TRAIT_TYPE_JEWELRY_ROBUST]   = true,
     [ITEM_TRAIT_TYPE_JEWELRY_ORNATE]   = true,
-    [ITEM_TRAIT_TYPE_SPECIAL_STAT]     = true,
 }
+if ITEM_TRAIT_TYPE_SPECIAL_STAT then
+    invalidTraits[ITEM_TRAIT_TYPE_SPECIAL_STAT] = true
+end
 
 function class.Validator:New(...)
     local instance = ZO_Object.New(self)
@@ -103,7 +105,7 @@ function class.Validator:Validate()
     if self:IsFcoisResearchMarked() then
         return traitType
     end
-    if quality >= ITEM_QUALITY_ARTIFACT or not cheapStyles[itemStyle] then
+    if quality >= ar.settings.maxQuality or not cheapStyles[itemStyle] then
         return
     end
     local hasSet = GetItemLinkSetInfo(itemLink)
