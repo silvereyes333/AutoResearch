@@ -70,8 +70,8 @@ function class.ResearchQueue:Initialize(craftSkill)
         local researchLineUnknownCount = 0
         for traitIndex = 1, numTraits do
             local traitType, _, known = GetSmithingResearchLineTraitInfo(craftSkill, researchLineIndex, traitIndex)
+            local durationSecs = select(2, GetSmithingResearchLineTraitTimes(craftSkill, researchLineIndex, traitIndex))
             if not known then  
-                local durationSecs = GetSmithingResearchLineTraitTimes(craftSkill, researchLineIndex, traitIndex)
                         
                 -- unknown and not researching
                 if not durationSecs then
@@ -86,6 +86,11 @@ function class.ResearchQueue:Initialize(craftSkill)
             else
                 --known trait
                 self.knownTraitsByResearchLine[researchLineIndex][traitType] = true
+                --workaround for bug where there's an active research counter for a known trait
+                if durationSecs and CancelSmithingTraitResearch then
+                    self.invalidResearchTrait = {researchLineIndex = researchLineIndex, traitIndex = traitIndex }
+                    return
+                end
             end
         end
         if researchLineUnknownCount then

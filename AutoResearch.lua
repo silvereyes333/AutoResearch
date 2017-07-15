@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.7.0",
+    version = "1.7.1",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor and weapon TraitType value ranges.
@@ -161,6 +161,8 @@ local function OnSmithingTraitResearchStarted(eventCode, craftSkill, researchLin
     ResearchNext(craftSkill)
 end
 
+local OnSmithingTraitResearchCanceled
+
 --[[ Runs whenever a research station is first opened ]]--
 local function Start(eventCode, craftSkill, sameStation) 
 
@@ -178,6 +180,17 @@ local function Start(eventCode, craftSkill, sameStation)
     
     -- Initialize the items cache to detect whether all research slots are full
     self.queue = self.classes.ResearchQueue:New(craftSkill)
+    
+    -- Workaround for ZOS bug that allowed a research timer on a known trait
+    if self.queue.invalidResearchTrait then
+        
+        EVENT_MANAGER:RegisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_CANCELED, 
+                                       OnSmithingTraitResearchCanceled)
+        CancelSmithingTraitResearch(craftSkill,
+                                    self.queue.invalidResearchTrait.researchLineIndex,
+                                    self.queue.invalidResearchTrait.traitIndex)
+        return
+    end
     if self.queue:AreResearchSlotsFull() then
         TryWritCreator(craftSkill)
         return
@@ -202,6 +215,22 @@ local function Start(eventCode, craftSkill, sameStation)
     
     -- Start researching the highest priority item from the cache
     ResearchNext(craftSkill)
+end
+
+-- Update 15+ only; if a known trait that has an active research counter was found and canceled,
+-- then restart the research process.
+OnSmithingTraitResearchCanceled = function(craftSkill, researchLineIndex, traitIndex)
+    EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_CANCELED)
+    if not self.queue or not self.queue.invalidResearchTrait then
+        return
+    end
+    if self.queue 
+       and self.queue.invalidResearchTrait
+       and self.queue.invalidResearchTrait.researchLineIndex == researchLineIndex
+       and self.queue.invalidResearchTrait.traitIndex == traitIndex
+    then
+        Start(nil, craftSkill)
+    end
 end
 
 --[[ Whenever self.researching is set, suppresses extraction errors ]]--
