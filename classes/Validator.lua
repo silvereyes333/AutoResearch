@@ -105,7 +105,7 @@ function class.Validator:Validate()
     if self:IsFcoisResearchMarked() then
         return traitType
     end
-    if quality >= ar.settings.maxQuality or not cheapStyles[itemStyle] then
+    if quality > ar.settings.maxQuality or not cheapStyles[itemStyle] then
         return
     end
     local hasSet = GetItemLinkSetInfo(itemLink)

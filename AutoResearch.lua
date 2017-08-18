@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.7.1",
+    version = "1.7.2",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor and weapon TraitType value ranges.
