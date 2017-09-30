@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.7.2",
+    version = "1.7.3",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor and weapon TraitType value ranges.
@@ -73,6 +73,15 @@ end
 --[[ Stops supressing extraction errors ]]--
 local function StopResearching()
     self.researching = nil
+end
+
+--[[ Stops UI error thrown on third slot researched due to some extract animation ]]--
+local origErrorFrame
+local function OnUIError(errorFrame, errorString)
+    if errorString and string.find(errorString, "CraftingSmithingExtractSlotAnimation") then
+        return
+    end
+    return origErrorFrame(errorFrame, errorString)
 end
 
 --[[ Unregisters all event handlers and stops suppressing extraction errors ]]--
@@ -164,7 +173,7 @@ end
 local OnSmithingTraitResearchCanceled
 
 --[[ Runs whenever a research station is first opened ]]--
-local function Start(eventCode, craftSkill, sameStation) 
+local function Start(eventCode, craftSkill, sameStation)
 
     -- Filter out any non-researchable craft skill lines
     local craftSkillInfo = self.craftSkills[craftSkill]
@@ -266,8 +275,10 @@ local function OnAddonLoaded(event, name)
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CRAFTING_STATION_INTERACT, Start)
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_END_CRAFTING_STATION_INTERACT, End)
     
-    -- Wire up extraction error suppression
+    -- Wire up extraction error suppressions
     ZO_PreHook("ZO_AlertNoSuppression", OnAlertNoSuppression)
+    origErrorFrame = ZO_ERROR_FRAME.OnUIError
+    ZO_ERROR_FRAME.OnUIError = OnUIError
     
     -- Set up settings menu.  See Settings.lua.
     self.SetupOptions()

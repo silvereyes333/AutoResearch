@@ -90,8 +90,8 @@ end
 
 --[[ If the item slot for this instance is valid, returns the item type.  Otherwise, returns nil. ]]--
 function class.Validator:Validate()
-    local _, _, _, _, locked, _, itemStyle, quality = GetItemInfo(self.bagId, self.slotIndex)
-    if locked or itemStyle == ITEMSTYLE_NONE then 
+    local locked = IsItemPlayerLocked(self.bagId, self.slotIndex)
+    if locked then 
         return
     end
     if self:IsFcoisLocked() then
@@ -99,12 +99,17 @@ function class.Validator:Validate()
     end
     local itemLink = GetItemLink(self.bagId, self.slotIndex)
     local traitType = GetItemLinkTraitInfo(itemLink)
-    if invalidTraits[traitType] then
-        return
-    end
     if self:IsFcoisResearchMarked() then
         return traitType
     end
+    local itemStyle = GetItemLinkItemStyle(itemLink)
+    if itemStyle == ITEMSTYLE_NONE then 
+        return
+    end
+    if invalidTraits[traitType] then
+        return
+    end
+    local quality = GetItemLinkQuality(itemLink)
     if quality > ar.settings.maxQuality or not cheapStyles[itemStyle] then
         return
     end
