@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.7.3",
+    version = "1.7.5",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor and weapon TraitType value ranges.
@@ -86,7 +86,6 @@ end
 
 --[[ Unregisters all event handlers and stops suppressing extraction errors ]]--
 local function End()
-    EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_STARTED)
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_CRAFT_COMPLETED)
     -- Small delay to prevent last extraction failed message
     zo_callLater(StopResearching, 500)
@@ -161,7 +160,7 @@ local function ResearchNext(craftSkill)
 end
 
 --[[ Event handler for when research starts on an item ]]--
-local function OnSmithingTraitResearchStarted(eventCode, craftSkill, researchLineIndex, traitIndex)
+local function OnCraftCompleted(eventCode, craftSkill)
     -- Stop waiting for timeout
     local LTO = LibStub("LibTimeout")
     if LTO then LTO:CancelTimeout(ResearchItemTimeout) end
@@ -219,8 +218,8 @@ local function Start(eventCode, craftSkill, sameStation)
     self.queue:Fill(bagIds)
     
     -- Listen for for the research started event
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_STARTED, 
-                                   OnSmithingTraitResearchStarted)
+    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CRAFT_COMPLETED, 
+                                   OnCraftCompleted)
     
     -- Start researching the highest priority item from the cache
     ResearchNext(craftSkill)
