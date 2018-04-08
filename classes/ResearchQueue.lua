@@ -43,7 +43,7 @@ function class.ResearchQueue:Initialize(craftSkill)
     -- Lookup table to find the research order index by trait
     self.researchOrderByTrait = {}
     self.maxResearchOrder = 0
-    for _, researchCategory in ipairs( { "armor", "weapons" } ) do
+    for _, researchCategory in ipairs( { "armor", "weapons", "jewelry" } ) do
         for traitOrder,traitType in ipairs(ar.settings.traitResearchOrder[researchCategory]) do
             self.researchOrderByTrait[traitType] = traitOrder
             if traitOrder > self.maxResearchOrder then

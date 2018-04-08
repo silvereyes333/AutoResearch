@@ -44,14 +44,16 @@ function self.SetupOptions()
     self.choices = { }
     self.choicesValues = { }
     for researchCategory, config in pairs(self.traitConfig) do
-        self.choices[researchCategory] = {}
-        self.choicesValues[researchCategory] = {}
-        for traitIndex=config.min,config.max do
-            table.insert(self.choicesValues[researchCategory], traitIndex)
-            table.insert(self.choices[researchCategory], GetString("SI_ITEMTRAITTYPE", traitIndex))
+        if config.name then
+            self.choices[researchCategory] = {}
+            self.choicesValues[researchCategory] = {}
+            for _, types in ipairs(config.types) do
+                for traitIndex=types.min,types.max do
+                    table.insert(self.choicesValues[researchCategory], traitIndex)
+                    table.insert(self.choices[researchCategory], GetString("SI_ITEMTRAITTYPE", traitIndex))
+                end
+            end
         end
-        table.insert(self.choicesValues[researchCategory], config.nirn)
-        table.insert(self.choices[researchCategory], GetString("SI_ITEMTRAITTYPE", config.nirn))
     end
 
     -- Setup options panel
@@ -115,13 +117,15 @@ function self.SetupOptions()
         },
     }
 
-    for _, researchCategory in ipairs( { "armor", "weapons" } ) do
+    for _, researchCategory in ipairs({ "armor", "weapons", "jewelry" }) do
+        local categoryNameStringId = self.traitConfig[researchCategory].name
+        if not categoryNameStringId then break end
         table.insert(optionsTable,
             -- Header
             {
                 type = "header",
                 width = "full",
-                name = GetString(self.traitConfig[researchCategory].name),
+                name = GetString(categoryNameStringId),
             })
         local maxOrderIndex = #self.defaults.traitResearchOrder[researchCategory]
         local minColumn2Index = math.ceil( maxOrderIndex / 2 ) + 1

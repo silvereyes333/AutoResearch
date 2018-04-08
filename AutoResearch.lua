@@ -6,23 +6,50 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.7.5",
+    version = "1.8.0",
     author = "|c99CCEFsilvereyes|r",
     
-    -- Global details about armor and weapon TraitType value ranges.
+    -- Global details about armor, weapon TraitType value ranges.
     traitConfig = {
         armor = {
             name = SI_ITEMTYPE45,
-            min = 11,
-            max = 18,
-            nirn = 25,
+            types = {
+                [1] = {
+                    min = 11,
+                    max = 18,
+                  },
+                [2] = {
+                    min = 25,
+                    max = 25,
+                  }
+            },
         },
         weapons = {
             name = SI_ITEMTYPE46,
-            min = 1,
-            max = 8,
-            nirn = 26,
-        }
+            types = {
+                [1] = {
+                    min = 1,
+                    max = 8,
+                  },
+                [2] = {
+                    min = 26,
+                    max = 26,
+                  }
+            },
+        },
+        jewelry = {
+            name = SI_ITEMTYPE66,
+            types = {
+                [1] = {
+                    min = 21,
+                    max = 23,
+                  },
+                [2] = {
+                    min = 28,
+                    max = 33,
+                  }
+            },
+        },
     },
     -- Option panel defaults
     defaults = {
@@ -51,16 +78,33 @@ AutoResearch = {
                 ITEM_TRAIT_TYPE_ARMOR_PROSPEROUS,
                 ITEM_TRAIT_TYPE_ARMOR_NIRNHONED,
             },
+            ["jewelry"] = {
+                ITEM_TRAIT_TYPE_JEWELRY_ARCANE,
+                ITEM_TRAIT_TYPE_JEWELRY_ROBUST,
+                ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY,
+                ITEM_TRAIT_TYPE_JEWELRY_TRIUNE,
+                ITEM_TRAIT_TYPE_JEWELRY_SWIFT,
+                ITEM_TRAIT_TYPE_JEWELRY_HEALTHY,
+                ITEM_TRAIT_TYPE_JEWELRY_PROTECTIVE,
+                ITEM_TRAIT_TYPE_JEWELRY_HARMONY,
+                ITEM_TRAIT_TYPE_JEWELRY_INFUSED,
+            },
         },
     },
     -- Class definition namespace
     classes = {},
     -- Information about supported craft stations
     craftSkills = {
-        [CRAFTING_TYPE_BLACKSMITHING] = { },
-        [CRAFTING_TYPE_CLOTHIER]      = { },
-        [CRAFTING_TYPE_WOODWORKING]   = { },
-    }
+        [CRAFTING_TYPE_BLACKSMITHING]   = { },
+        [CRAFTING_TYPE_CLOTHIER]        = { },
+        [CRAFTING_TYPE_WOODWORKING]     = { },
+        [CRAFTING_TYPE_JEWELRYCRAFTING or -1] = { },
+    },
+    styledCategories = {
+        [ITEM_TRAIT_TYPE_CATEGORY_ARMOR]  = true,
+        [ITEM_TRAIT_TYPE_CATEGORY_WEAPON] = true,
+    },
+    debugMode = false,
 }
 local self = AutoResearch
 local libLazyCraftingName = "LibLazyCrafting"
@@ -69,10 +113,15 @@ function self.Print(input)
     local output = zo_strformat("<<1>>|cFFFFFF: <<2>>|r", self.title, input)
     d(output)
 end
+function self.Debug(input)
+    if not self.debugMode then return end
+    self.Print(input)
+end
 
 --[[ Stops supressing extraction errors ]]--
 local function StopResearching()
-    self.researching = nil
+    self.researchState = "stopped"
+    self.Debug("self.researchState = "..tostring(self.researchState))
 end
 
 --[[ Stops UI error thrown on third slot researched due to some extract animation ]]--
@@ -84,29 +133,41 @@ local function OnUIError(errorFrame, errorString)
     return origErrorFrame(errorFrame, errorString)
 end
 
---[[ Unregisters all event handlers and stops suppressing extraction errors ]]--
-local function End()
+local function EndInteraction()
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_CRAFT_COMPLETED)
-    -- Small delay to prevent last extraction failed message
-    zo_callLater(StopResearching, 500)
+    self.researchState = nil
+    self.Debug("self.researchState = "..tostring(self.researchState))
 end
 
 --[[ Ends the auto-research process and starts up Dolgubon's Lazy Writ Crafter, if enabled ]]--
 local function TryWritCreator(craftSkill)
-	End()
-	if WritCreater then 
+    EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_CRAFT_COMPLETED)
+    -- Small delay to prevent last extraction failed message
+    self.researchState = "stopping"
+    self.Debug("self.researchState = "..tostring(self.researchState))
+    zo_callLater(StopResearching, 500)
+    
+    if WritCreater then 
         if WritCreater.craftCompleteHandler then
             EVENT_MANAGER:RegisterForEvent(WritCreater.name, EVENT_CRAFT_COMPLETED, 
                                            WritCreater.craftCompleteHandler)
+            
+            self.Debug("Calling WritCreater.craftCheck(1, "..tostring(craftSkill)..")")
             WritCreater.craftCheck(1, craftSkill)
         else
             d("Old version of Dolgubon's Lazy Writ Crafter detected. Please update your addons.")
         end
 	end
+    local LLC = LibStub("LibLazyCrafting")
+    if LLC and LLC.craftInteract then
+        self.Debug("Calling LibLazyCrafting.craftInteract(1, "..tostring(craftSkill)..")")
+        LLC.craftInteract(1, craftSkill)
+    end
 end
 
 --[[ Workaround for the base game bug with the third research slot not starting research. ]]--
 local function ResearchItemTimeout(craftSkill)
+    self.Debug("ResearchItemTimeout("..tostring(craftSkill)..")")
     ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, SI_AUTORESEARCH_ERROR)
     TryWritCreator(craftSkill)
 end
@@ -127,9 +188,6 @@ local function ResearchItem(craftSkill, bagId, slotIndex)
         itemLink, traitName)
     self.Print(message)
     
-    -- Start suppressing extraction errors
-    self.researching = true
-    
     -- If research doesn't start in 1.5 seconds, then time out and end auto-research
     LTO:StartTimeout( 1500, ResearchItemTimeout, craftSkill)
     
@@ -144,6 +202,7 @@ local function ResearchNext(craftSkill)
 
     -- Check for full research slots
     if self.queue:AreResearchSlotsFull() then
+        self.Debug("Research slots are all full. Try Writ Creator next.")
 		TryWritCreator(craftSkill)
         return
     end
@@ -165,6 +224,8 @@ local function OnCraftCompleted(eventCode, craftSkill)
     local LTO = LibStub("LibTimeout")
     if LTO then LTO:CancelTimeout(ResearchItemTimeout) end
     
+    self.Debug("OnCraftCompleted("..tostring(eventCode)..", "..tostring(craftSkill)..")")
+    
     -- Start researching the highest priority item from the cache
     ResearchNext(craftSkill)
 end
@@ -173,6 +234,11 @@ local OnSmithingTraitResearchCanceled
 
 --[[ Runs whenever a research station is first opened ]]--
 local function Start(eventCode, craftSkill, sameStation)
+    self.Debug("Start("..tostring(eventCode)..","..tostring(craftSkill)..","..tostring(sameStation)..")")
+    if self.researchState then
+        self.Debug("Exiting Start()...")
+        return
+    end
 
     -- Filter out any non-researchable craft skill lines
     local craftSkillInfo = self.craftSkills[craftSkill]
@@ -180,6 +246,7 @@ local function Start(eventCode, craftSkill, sameStation)
         TryWritCreator(craftSkill)
         return
     end
+    
     
     -- Instantiate link parser
     if not craftSkillInfo.linkParser then
@@ -192,6 +259,7 @@ local function Start(eventCode, craftSkill, sameStation)
     -- Workaround for ZOS bug that allowed a research timer on a known trait
     if self.queue.invalidResearchTrait then
         
+        self.Debug("Invalid research trait found. Canceling...")
         EVENT_MANAGER:RegisterForEvent(self.name, EVENT_SMITHING_TRAIT_RESEARCH_CANCELED, 
                                        OnSmithingTraitResearchCanceled)
         CancelSmithingTraitResearch(craftSkill,
@@ -200,9 +268,13 @@ local function Start(eventCode, craftSkill, sameStation)
         return
     end
     if self.queue:AreResearchSlotsFull() then
+        self.Debug("All research slots are full")
         TryWritCreator(craftSkill)
         return
     end
+    
+    self.researchState = "started"
+    self.Debug("self.researchState = "..tostring(self.researchState))
     
     -- Select which bags will be scanned for researchable items based on user configuration
     local bagIds
@@ -216,6 +288,11 @@ local function Start(eventCode, craftSkill, sameStation)
     
     -- Scan the bags for researchable items
     self.queue:Fill(bagIds)
+    
+    -- Cover Lazy Writ Crafter's ears and hum for a little bit
+    if WritCreater then
+        EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFT_COMPLETED)
+    end
     
     -- Listen for for the research started event
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CRAFT_COMPLETED, 
@@ -237,21 +314,23 @@ OnSmithingTraitResearchCanceled = function(craftSkill, researchLineIndex, traitI
        and self.queue.invalidResearchTrait.researchLineIndex == researchLineIndex
        and self.queue.invalidResearchTrait.traitIndex == traitIndex
     then
+        self.Debug("Research successfully canceled. Starting over...")
         Start(nil, craftSkill)
     end
 end
 
---[[ Whenever self.researching is set, suppresses extraction errors ]]--
+--[[ Whenever self.researchState is set, suppresses extraction errors ]]--
 local function OnAlertNoSuppression(category, soundId, message)
     -- When auto-researching on the default craft station tab (extraction), extraction errors get
     -- raised by the game client.  Suppress them below.
     -- TODO: perhaps switch to the research tab automatically before starting auto research.
-    if not self.researching or category ~= UI_ALERT_CATEGORY_ALERT then
+    if not self.researchState or self.researchState == "stopped" or category ~= UI_ALERT_CATEGORY_ALERT then
         return
     end
     if message == SI_SMITHING_BLACKSMITH_EXTRACTION_FAILED 
        or message == SI_SMITHING_CLOTHIER_EXTRACTION_FAILED
        or message == SI_SMITHING_WOODWORKING_EXTRACTION_FAILED
+       or message == SI_SMITHING_EXTRACTION_FAILED
     then
         return true
     end
@@ -267,12 +346,15 @@ local function OnAddonLoaded(event, name)
     -- Procrastinate our writ laziness until after done researching
     if WritCreater then
         EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFTING_STATION_INTERACT)
-        EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFT_COMPLETED)
+    end
+    local LLC = LibStub("LibLazyCrafting")
+    if LLC then
+        EVENT_MANAGER:UnregisterForEvent("LibLazyCrafting", EVENT_CRAFTING_STATION_INTERACT)
     end
     
     -- Wire up event handlers
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CRAFTING_STATION_INTERACT, Start)
-    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_END_CRAFTING_STATION_INTERACT, End)
+    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_END_CRAFTING_STATION_INTERACT, EndInteraction)
     
     -- Wire up extraction error suppressions
     ZO_PreHook("ZO_AlertNoSuppression", OnAlertNoSuppression)

@@ -45,13 +45,12 @@ local invalidTraits = {
     [ITEM_TRAIT_TYPE_WEAPON_ORNATE]    = true,
     [ITEM_TRAIT_TYPE_ARMOR_ORNATE]     = true,
     [ITEM_TRAIT_TYPE_ARMOR_INTRICATE]  = true,
-    [ITEM_TRAIT_TYPE_JEWELRY_HEALTHY]  = true,
-    [ITEM_TRAIT_TYPE_JEWELRY_ARCANE]   = true,
-    [ITEM_TRAIT_TYPE_JEWELRY_ROBUST]   = true,
     [ITEM_TRAIT_TYPE_JEWELRY_ORNATE]   = true,
 }
-if ITEM_TRAIT_TYPE_SPECIAL_STAT then
-    invalidTraits[ITEM_TRAIT_TYPE_SPECIAL_STAT] = true
+if not ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY then
+    invalidTraits[ITEM_TRAIT_TYPE_JEWELRY_HEALTHY] = true
+    invalidTraits[ITEM_TRAIT_TYPE_JEWELRY_ARCANE]  = true
+    invalidTraits[ITEM_TRAIT_TYPE_JEWELRY_ROBUST]  = true
 end
 
 function class.Validator:New(...)
@@ -102,15 +101,16 @@ function class.Validator:Validate()
     if self:IsFcoisResearchMarked() then
         return traitType
     end
+    local itemTraitTypeCategory = GetItemTraitTypeCategory(itemTraitType)
     local itemStyle = GetItemLinkItemStyle(itemLink)
-    if itemStyle == ITEMSTYLE_NONE then 
+    if ar.styledCategories[itemTraitTypeCategory] and itemStyle == ITEMSTYLE_NONE then 
         return
     end
     if invalidTraits[traitType] then
         return
     end
     local quality = GetItemLinkQuality(itemLink)
-    if quality > ar.settings.maxQuality or not cheapStyles[itemStyle] then
+    if quality > ar.settings.maxQuality or (ar.styledCategories[itemTraitTypeCategory] and not cheapStyles[itemStyle]) then
         return
     end
     local hasSet = GetItemLinkSetInfo(itemLink)
