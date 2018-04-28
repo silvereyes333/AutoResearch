@@ -33,7 +33,7 @@ function class.LinkParser:Initialize(craftSkill)
     for researchLineIndex = 1, researchLineCount do
         local researchLineName = GetSmithingResearchLineInfo(craftSkill, researchLineIndex)
         local patternIndex = self.namesToPatternIndexes[researchLineName]
-        local itemLink = GetSmithingPatternResultLink(patternIndex, 1, 7, 1, 1)
+        local itemLink = GetSmithingPatternResultLink(patternIndex, 1, (craftSkill == CRAFTING_TYPE_JEWELRYCRAFTING and 5) or 7, 1, 1)
         local equipType = GetItemLinkEquipType(itemLink)
         local armorType = GetItemLinkArmorType(itemLink)
         local weaponType = GetItemLinkWeaponType(itemLink)
