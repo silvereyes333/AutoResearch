@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.8.1",
+    version = "1.8.2",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -158,7 +158,7 @@ local function TryWritCreator(craftSkill)
             d("Old version of Dolgubon's Lazy Writ Crafter detected. Please update your addons.")
         end
 	end
-    local LLC = LibStub("LibLazyCrafting")
+    local LLC = LibStub("LibLazyCrafting", true)
     if LLC and LLC.craftInteract then
         self.Debug("Calling LibLazyCrafting.craftInteract(1, "..tostring(craftSkill)..")")
         LLC.craftInteract(1, craftSkill)
@@ -175,10 +175,6 @@ end
 --[[ Starts research on a specific slot ]]--
 local function ResearchItem(craftSkill, bagId, slotIndex)
 
-    -- Require LibTimeout
-    local LTO = LibStub("LibTimeout")
-    if not LTO then return end
-    
     -- Print out auto-research message to chat
     local itemLink = GetItemLink(bagId, slotIndex)
     local traitType = GetItemLinkTraitInfo(itemLink)
@@ -189,6 +185,7 @@ local function ResearchItem(craftSkill, bagId, slotIndex)
     self.Print(message)
     
     -- If research doesn't start in 1.5 seconds, then time out and end auto-research
+    local LTO = LibStub("LibTimeout")
     LTO:StartTimeout( 1500, ResearchItemTimeout, craftSkill)
     
     -- Perform the research
@@ -222,7 +219,7 @@ end
 local function OnCraftCompleted(eventCode, craftSkill)
     -- Stop waiting for timeout
     local LTO = LibStub("LibTimeout")
-    if LTO then LTO:CancelTimeout(ResearchItemTimeout) end
+    LTO:CancelTimeout(ResearchItemTimeout)
     
     self.Debug("OnCraftCompleted("..tostring(eventCode)..", "..tostring(craftSkill)..")")
     
@@ -347,7 +344,7 @@ local function OnAddonLoaded(event, name)
     if WritCreater then
         EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFTING_STATION_INTERACT)
     end
-    local LLC = LibStub("LibLazyCrafting")
+    local LLC = LibStub("LibLazyCrafting", true)
     if LLC then
         EVENT_MANAGER:UnregisterForEvent("LibLazyCrafting", EVENT_CRAFTING_STATION_INTERACT)
     end

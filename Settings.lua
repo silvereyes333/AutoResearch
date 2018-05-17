@@ -58,7 +58,6 @@ function self.SetupOptions()
 
     -- Setup options panel
     local LAM2 = LibStub("LibAddonMenu-2.0")
-    if not LAM2 then return end
 
     local panelData = {
         type = "panel",
