@@ -52,6 +52,15 @@ function class.ResearchQueue:Initialize(craftSkill)
         end
     end
     
+    self.researchOrderByResearchLineIndex = {}
+    self.maxResearchLineOrder = 0
+    for researchLineOrder,researchLineIndex in ipairs(ar.settings.researchLineOrder[craftSkill]) do
+        self.researchOrderByResearchLineIndex[researchLineIndex] = researchLineOrder
+        if researchLineOrder > self.maxResearchLineOrder then
+            self.maxResearchLineOrder = researchLineOrder
+        end
+    end
+    
     -- How many traits are unknown for each research line index
     self.researchLineUnknownCounts = {}
     
@@ -150,7 +159,9 @@ function class.ResearchQueue:Add(bagId, slotIndex)
              |=> [ research order ] slots with traits that are all the same priority, 
                          |          lower number priority first
                          |
-                         |=> [slot] finally, the bagId and slotIndex of the item to use
+                         |=> [slots] a list of slots for the given research order, sorted by 
+                                     research line priority.  Only a single slot from each 
+                                     research line / trait combination is used.
       ]]--    
     local groupCount = #self.data
     if groupCount == 0 then
@@ -163,6 +174,7 @@ function class.ResearchQueue:Add(bagId, slotIndex)
         researchLineIndex = researchLineIndex
     }
     local researchOrder = self.researchOrderByTrait[traitType]
+    local researchLineOrder = self.researchOrderByResearchLineIndex[researchLineIndex]
     for i=1,groupCount do
         local group = self.data[i]
         if researchLineUnknownCount >= group.researchLineUnknownCount then
@@ -173,13 +185,14 @@ function class.ResearchQueue:Add(bagId, slotIndex)
             
             for slotOrder=#slots,1,-1  do
                 local slot = slots[slotOrder]
+                local slotResearchLineOrder = self.researchOrderByResearchLineIndex[slot.researchLineIndex]
                 -- A slot is already assigned to this research line for this research order
-                if researchLineIndex == slot.researchLineIndex then
+                if researchLineOrder == slotResearchLineOrder then
                     -- TODO: replace if level is lower or quality is lower
                     return
                     
                 -- First slot identified for this research line and research order
-                elseif researchLineIndex < slot.researchLineIndex then
+                elseif researchLineOrder < slotResearchLineOrder then
                     table.insert(slots, slotOrder + 1, newSlot)
                     return
                 end

@@ -3,14 +3,13 @@ local function GetTraitStringId(traitIndex)
     local traitStringId = _G[zo_strformat("SI_ITEMTRAITTYPE<<1>>", traitIndex)]
     return traitStringId
 end
-local function SwapTraitOrders(optionsTable, researchCategory, optionIndex, value)
-    local researchOrderSettings = self.settings.traitResearchOrder[researchCategory]
-    local oldValue = researchOrderSettings[optionIndex]
-    for swapOptionIndex=1,#researchOrderSettings do
-        local swapValue = researchOrderSettings[swapOptionIndex]
+local function SwapDropdownValues(optionsTable, settings, optionIndex, value)
+    local oldValue = settings[optionIndex]
+    for swapOptionIndex=1,#settings do
+        local swapValue = settings[swapOptionIndex]
         if swapValue == value then
-            researchOrderSettings[swapOptionIndex] = oldValue
-            researchOrderSettings[optionIndex] = value
+            settings[swapOptionIndex] = oldValue
+            settings[optionIndex] = value
             return
         end
     end
@@ -19,41 +18,73 @@ local function CreateTraitOption(optionsTable, optionIndex, researchCategory)
     local traitOption = {
         type = "dropdown",
         width = "half",
-        choices = self.choices[researchCategory],
-        choicesValues = self.choicesValues[researchCategory],
+        choices = self.traitChoices[researchCategory],
+        choicesValues = self.traitChoicesValues[researchCategory],
         name = "|t420%:100%:esoui/art/worldmap/worldmap_map_background.dds|t" 
             .. tostring(optionIndex),
         getFunc = function() return self.settings.traitResearchOrder[researchCategory][optionIndex] end,
         setFunc = function(value)
-            SwapTraitOrders(optionsTable, researchCategory, optionIndex, value)
+            SwapDropdownValues(optionsTable, self.settings.traitResearchOrder[researchCategory], optionIndex, value)
         end,
         default = self.defaults.traitResearchOrder[researchCategory][optionIndex]
     }
     
     table.insert(optionsTable, traitOption)
 end
+local function CreateResearchLineOption(optionsTable, optionIndex, craftSkill)
+    local researchLineOption = {
+        type = "dropdown",
+        width = "half",
+        choices = self.researchLineChoices[craftSkill],
+        choicesValues = self.researchLineChoicesValues[craftSkill],
+        name = "|t420%:100%:esoui/art/worldmap/worldmap_map_background.dds|t" 
+            .. tostring(optionIndex),
+        getFunc = function() return self.settings.researchLineOrder[craftSkill][optionIndex] end,
+        setFunc = function(value)
+            SwapDropdownValues(optionsTable, self.settings.researchLineOrder[craftSkill], optionIndex, value)
+        end,
+        default = self.defaults.researchLineOrder[craftSkill][optionIndex]
+    }
+    
+    table.insert(optionsTable, researchLineOption)
+end
 function self.SetupOptions()
+
+    -- Populate the dropdown choices
+    self.traitChoices = { }
+    self.traitChoicesValues = { }
+    for researchCategory, config in pairs(self.traitConfig) do
+        if config.name then
+            self.traitChoices[researchCategory] = { }
+            self.traitChoicesValues[researchCategory] = { }
+            for _, types in ipairs(config.types) do
+                for traitIndex=types.min,types.max do
+                    table.insert(self.traitChoicesValues[researchCategory], traitIndex)
+                    table.insert(self.traitChoices[researchCategory], GetString("SI_ITEMTRAITTYPE", traitIndex))
+                end
+            end
+        end
+    end
+    self.researchLineChoices = { }
+    self.researchLineChoicesValues = { }
+    self.defaults.researchLineOrder = { }
+    for craftSkill, _ in pairs(self.craftSkills) do
+        local researchLineCount = GetNumSmithingResearchLines(craftSkill)
+        self.researchLineChoices[craftSkill] = { }
+        self.researchLineChoicesValues[craftSkill] = { }
+        for researchLineIndex = 1, researchLineCount do
+            local researchLineName = GetSmithingResearchLineInfo(craftSkill, researchLineIndex)
+            table.insert(self.researchLineChoicesValues[craftSkill], researchLineIndex)
+            table.insert(self.researchLineChoices[craftSkill], researchLineName)
+        end
+        self.defaults.researchLineOrder[craftSkill] = self.researchLineChoicesValues[craftSkill]
+    end
+    
     -- Setup saved var
     self.settings = ZO_SavedVars:New("AutoResearch_Data", 1, nil, self.defaults)
     if not self.settings.dataVersion then
         self.settings.dataVersion = 1;
         self.Print(GetString(SI_AUTORESEARCH_NOTICE))
-    end
-
-    -- Populate the dropdown choices
-    self.choices = { }
-    self.choicesValues = { }
-    for researchCategory, config in pairs(self.traitConfig) do
-        if config.name then
-            self.choices[researchCategory] = {}
-            self.choicesValues[researchCategory] = {}
-            for _, types in ipairs(config.types) do
-                for traitIndex=types.min,types.max do
-                    table.insert(self.choicesValues[researchCategory], traitIndex)
-                    table.insert(self.choices[researchCategory], GetString("SI_ITEMTRAITTYPE", traitIndex))
-                end
-            end
-        end
     end
 
     -- Setup options panel
@@ -124,7 +155,7 @@ function self.SetupOptions()
             {
                 type = "header",
                 width = "full",
-                name = GetString(categoryNameStringId),
+                name = zo_strformat("<<m:1>>", GetString(categoryNameStringId), 2),
             })
         local maxOrderIndex = #self.defaults.traitResearchOrder[researchCategory]
         local minColumn2Index = math.ceil( maxOrderIndex / 2 ) + 1
@@ -133,6 +164,30 @@ function self.SetupOptions()
             local column2Index = column1Index + minColumn2Index - 1
             if column2Index <= maxOrderIndex then
                 CreateTraitOption(optionsTable, column2Index, researchCategory)
+            end
+        end
+    end
+    
+    local traitLinesTitle = zo_strformat("<<m:1>>", GetString(SI_SMITHING_RESEARCH_LINE_HEADER), 2)
+    local pairFormat = GetString(SI_INVENTORY_TRAIT_STATUS_TOOLTIP)
+    for _, craftSkill in ipairs({ CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE_CLOTHIER, 
+                                  CRAFTING_TYPE_WOODWORKING, CRAFTING_TYPE_JEWELRYCRAFTING })
+    do
+        table.insert(optionsTable,
+        -- Header
+        {
+            type = "header",
+            width = "full",
+            name = zo_strformat(pairFormat, traitLinesTitle, GetCraftingSkillName(craftSkill)),
+        })
+        -- Number of research lines
+        local researchLineCount = GetNumSmithingResearchLines(craftSkill)
+        local minColumn2Index = math.ceil( researchLineCount / 2 ) + 1
+        for researchLineIndex = 1, minColumn2Index - 1 do
+            CreateResearchLineOption(optionsTable, researchLineIndex, craftSkill)
+            local researchLineIndex2 = researchLineIndex + minColumn2Index - 1
+            if researchLineIndex2 <= researchLineCount then
+                CreateResearchLineOption(optionsTable, researchLineIndex2, craftSkill)
             end
         end
     end

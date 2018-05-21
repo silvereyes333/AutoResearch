@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.8.2",
+    version = "1.9.0",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -98,7 +98,7 @@ AutoResearch = {
         [CRAFTING_TYPE_BLACKSMITHING]   = { },
         [CRAFTING_TYPE_CLOTHIER]        = { },
         [CRAFTING_TYPE_WOODWORKING]     = { },
-        [CRAFTING_TYPE_JEWELRYCRAFTING or -1] = { },
+        [CRAFTING_TYPE_JEWELRYCRAFTING] = { },
     },
     styledCategories = {
         [ITEM_TRAIT_TYPE_CATEGORY_ARMOR]  = true,
@@ -159,7 +159,7 @@ local function TryWritCreator(craftSkill)
         end
 	end
     local LLC = LibStub("LibLazyCrafting", true)
-    if LLC and LLC.craftInteract then
+    if LLC.craftInteract then
         self.Debug("Calling LibLazyCrafting.craftInteract(1, "..tostring(craftSkill)..")")
         LLC.craftInteract(1, craftSkill)
     end
@@ -324,10 +324,7 @@ local function OnAlertNoSuppression(category, soundId, message)
     if not self.researchState or self.researchState == "stopped" or category ~= UI_ALERT_CATEGORY_ALERT then
         return
     end
-    if message == SI_SMITHING_BLACKSMITH_EXTRACTION_FAILED 
-       or message == SI_SMITHING_CLOTHIER_EXTRACTION_FAILED
-       or message == SI_SMITHING_WOODWORKING_EXTRACTION_FAILED
-       or message == SI_SMITHING_EXTRACTION_FAILED
+    if message == SI_SMITHING_EXTRACTION_FAILED
     then
         return true
     end
