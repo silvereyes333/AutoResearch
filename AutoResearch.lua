@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.9.0",
+    version = "1.9.1",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -159,7 +159,7 @@ local function TryWritCreator(craftSkill)
         end
 	end
     local LLC = LibStub("LibLazyCrafting", true)
-    if LLC.craftInteract then
+    if LLC and LLC.craftInteract then
         self.Debug("Calling LibLazyCrafting.craftInteract(1, "..tostring(craftSkill)..")")
         LLC.craftInteract(1, craftSkill)
     end

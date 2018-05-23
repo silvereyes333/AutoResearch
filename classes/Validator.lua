@@ -40,18 +40,14 @@ local cheapStyles = {
     [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
 }
 local invalidTraits = {
-    [ITEM_TRAIT_TYPE_NONE]             = true,
-    [ITEM_TRAIT_TYPE_WEAPON_INTRICATE] = true,
-    [ITEM_TRAIT_TYPE_WEAPON_ORNATE]    = true,
-    [ITEM_TRAIT_TYPE_ARMOR_ORNATE]     = true,
-    [ITEM_TRAIT_TYPE_ARMOR_INTRICATE]  = true,
-    [ITEM_TRAIT_TYPE_JEWELRY_ORNATE]   = true,
+    [ITEM_TRAIT_TYPE_NONE]              = true,
+    [ITEM_TRAIT_TYPE_WEAPON_INTRICATE]  = true,
+    [ITEM_TRAIT_TYPE_WEAPON_ORNATE]     = true,
+    [ITEM_TRAIT_TYPE_ARMOR_ORNATE]      = true,
+    [ITEM_TRAIT_TYPE_ARMOR_INTRICATE]   = true,
+    [ITEM_TRAIT_TYPE_JEWELRY_ORNATE]    = true,
+    [ITEM_TRAIT_TYPE_JEWELRY_INTRICATE] = true,
 }
-if not ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY then
-    invalidTraits[ITEM_TRAIT_TYPE_JEWELRY_HEALTHY] = true
-    invalidTraits[ITEM_TRAIT_TYPE_JEWELRY_ARCANE]  = true
-    invalidTraits[ITEM_TRAIT_TYPE_JEWELRY_ROBUST]  = true
-end
 
 function class.Validator:New(...)
     local instance = ZO_Object.New(self)
