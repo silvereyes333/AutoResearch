@@ -48,6 +48,23 @@ local invalidTraits = {
     [ITEM_TRAIT_TYPE_JEWELRY_ORNATE]    = true,
     [ITEM_TRAIT_TYPE_JEWELRY_INTRICATE] = true,
 }
+local craftSkillsByItemSoundCategory = {
+    [ITEM_SOUND_CATEGORY_BOW]             = CRAFTING_TYPE_WOODWORKING,
+    [ITEM_SOUND_CATEGORY_DAGGER]          = CRAFTING_TYPE_BLACKSMITHING,
+    [ITEM_SOUND_CATEGORY_HEAVY_ARMOR]     = CRAFTING_TYPE_BLACKSMITHING,
+    [ITEM_SOUND_CATEGORY_LIGHT_ARMOR]     = CRAFTING_TYPE_CLOTHIER,
+    [ITEM_SOUND_CATEGORY_MEDIUM_ARMOR]    = CRAFTING_TYPE_CLOTHIER,
+    [ITEM_SOUND_CATEGORY_NECKLACE]        = CRAFTING_TYPE_JEWELRYCRAFTING,
+    [ITEM_SOUND_CATEGORY_ONE_HAND_AX]     = CRAFTING_TYPE_BLACKSMITHING,
+    [ITEM_SOUND_CATEGORY_ONE_HAND_HAMMER] = CRAFTING_TYPE_BLACKSMITHING,
+    [ITEM_SOUND_CATEGORY_ONE_HAND_SWORD]  = CRAFTING_TYPE_BLACKSMITHING,
+    [ITEM_SOUND_CATEGORY_RING]            = CRAFTING_TYPE_JEWELRYCRAFTING,
+    [ITEM_SOUND_CATEGORY_SHIELD]          = CRAFTING_TYPE_WOODWORKING,
+    [ITEM_SOUND_CATEGORY_STAFF]           = CRAFTING_TYPE_WOODWORKING,
+    [ITEM_SOUND_CATEGORY_TWO_HAND_AX]     = CRAFTING_TYPE_BLACKSMITHING,
+    [ITEM_SOUND_CATEGORY_TWO_HAND_HAMMER] = CRAFTING_TYPE_BLACKSMITHING,
+    [ITEM_SOUND_CATEGORY_TWO_HAND_SWORD]  = CRAFTING_TYPE_BLACKSMITHING,
+}
 
 function class.Validator:New(...)
     local instance = ZO_Object.New(self)
@@ -83,6 +100,11 @@ function class.Validator:IsFcoisLocked()
     end
 end
 
+function class.Validator:GetItemLinkCraftSkill(itemLink)
+    local itemSoundCategory = GetItemSoundCategoryFromLink(itemLink)
+    return craftSkillsByItemSoundCategory[itemSoundCategory]
+end
+
 --[[ If the item slot for this instance is valid, returns the item type.  Otherwise, returns nil. ]]--
 function class.Validator:Validate()
     local locked = IsItemPlayerLocked(self.bagId, self.slotIndex)
@@ -106,7 +128,11 @@ function class.Validator:Validate()
         return
     end
     local quality = GetItemLinkQuality(itemLink)
-    if quality > ar.settings.maxQuality or (ar.styledCategories[itemTraitTypeCategory] and not cheapStyles[itemStyle]) then
+    local craftSkill = self:GetItemLinkCraftSkill(itemLink)
+    if not craftSkill or not ar.craftSkills[craftSkill] then
+        return
+    end
+    if quality > ar.settings.maxQuality[craftSkill] or (ar.styledCategories[itemTraitTypeCategory] and not cheapStyles[itemStyle]) then
         return
     end
     local hasSet = GetItemLinkSetInfo(itemLink)

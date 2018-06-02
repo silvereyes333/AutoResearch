@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.9.1",
+    version = "1.10.0",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -54,7 +54,12 @@ AutoResearch = {
     -- Option panel defaults
     defaults = {
         bags = AUTORESEARCH_BAG_BOTH,
-        maxQuality = ITEM_QUALITY_ARCANE,
+        maxQuality = {
+            [CRAFTING_TYPE_BLACKSMITHING]   = ITEM_QUALITY_ARCANE,
+            [CRAFTING_TYPE_CLOTHIER]        = ITEM_QUALITY_ARCANE,
+            [CRAFTING_TYPE_WOODWORKING]     = ITEM_QUALITY_ARCANE,
+            [CRAFTING_TYPE_JEWELRYCRAFTING] = ITEM_QUALITY_ARCANE,
+        },
         traitResearchOrder = {
             ["weapons"] = {
                 ITEM_TRAIT_TYPE_WEAPON_SHARPENED,
@@ -239,7 +244,7 @@ local function Start(eventCode, craftSkill, sameStation)
 
     -- Filter out any non-researchable craft skill lines
     local craftSkillInfo = self.craftSkills[craftSkill]
-    if not craftSkillInfo then
+    if not craftSkillInfo or not self.settings.enabled[craftSkill] then
         TryWritCreator(craftSkill)
         return
     end
