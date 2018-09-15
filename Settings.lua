@@ -1,9 +1,16 @@
-local self = AutoResearch
-local function GetTraitStringId(traitIndex)
-    local traitStringId = _G[zo_strformat("SI_ITEMTRAITTYPE<<1>>", traitIndex)]
-    return traitStringId
-end
-local function SwapDropdownValues(optionsTable, settings, optionIndex, value)
+local addon = AutoResearch
+
+local COLOR_DISABLED = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_TEXT_COLORS, INTERFACE_TEXT_COLOR_DISABLED))
+local NONE = COLOR_DISABLED:Colorize(zo_strformat(GetString(SI_QUEST_TYPE_FORMAT), GetString(SI_ITEMTYPE0)))
+local LibSavedVars = LibStub("LibSavedVars")
+
+----------------- Settings -----------------------
+
+local function SwapDropdownValues(settings, optionIndex, value)
+    if value == 0 then
+        settings[optionIndex] = value
+        return
+    end
     local oldValue = settings[optionIndex]
     for swapOptionIndex=1,#settings do
         local swapValue = settings[swapOptionIndex]
@@ -13,18 +20,20 @@ local function SwapDropdownValues(optionsTable, settings, optionIndex, value)
             return
         end
     end
+    settings[optionIndex] = value
 end
 local function CreateTraitOption(optionsTable, optionIndex, researchCategory)
+    local self = addon
     local traitOption = {
         type = "dropdown",
         width = "half",
-        choices = self.traitChoices[researchCategory],
+        choices = addon.traitChoices[researchCategory],
         choicesValues = self.traitChoicesValues[researchCategory],
         name = "|t420%:100%:esoui/art/worldmap/worldmap_map_background.dds|t" 
             .. tostring(optionIndex),
-        getFunc = function() return self.settings.traitResearchOrder[researchCategory][optionIndex] end,
+        getFunc = function() return LibSavedVars:Get(self, "traitResearchOrder")[researchCategory][optionIndex] end,
         setFunc = function(value)
-            SwapDropdownValues(optionsTable, self.settings.traitResearchOrder[researchCategory], optionIndex, value)
+            SwapDropdownValues(LibSavedVars:Get(self, "traitResearchOrder")[researchCategory], optionIndex, value)
         end,
         default = self.defaults.traitResearchOrder[researchCategory][optionIndex]
     }
@@ -32,6 +41,7 @@ local function CreateTraitOption(optionsTable, optionIndex, researchCategory)
     table.insert(optionsTable, traitOption)
 end
 local function CreateResearchLineOption(optionsTable, optionIndex, craftSkill)
+    local self = addon
     local researchLineOption = {
         type = "dropdown",
         width = "half",
@@ -39,29 +49,55 @@ local function CreateResearchLineOption(optionsTable, optionIndex, craftSkill)
         choicesValues = self.researchLineChoicesValues[craftSkill],
         name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t" 
             .. tostring(optionIndex),
-        getFunc = function() return self.settings.researchLineOrder[craftSkill][optionIndex] end,
+        getFunc = function() return LibSavedVars:Get(self, "researchLineOrder")[craftSkill][optionIndex] end,
         setFunc = function(value)
-            SwapDropdownValues(optionsTable, self.settings.researchLineOrder[craftSkill], optionIndex, value)
+            SwapDropdownValues(LibSavedVars:Get(self, "researchLineOrder")[craftSkill], optionIndex, value)
         end,
         default = self.defaults.researchLineOrder[craftSkill][optionIndex],
-        disabled = function() return not self.settings.enabled[craftSkill] end
+        disabled = function() return not LibSavedVars:Get(self, "enabled")[craftSkill] end
     }
     
     table.insert(optionsTable, researchLineOption)
 end
-function self.SetupOptions()
+local function GetItemTraitTypeName(traitIndex)
+    return GetString("SI_ITEMTRAITTYPE", traitIndex)
+end
+
+function addon:OnLegacySavedVarsMigrationStart(legacySavedVars)
+    if not legacySavedVars.dataVersion or legacySavedVars.dataVersion > 1 then
+        legacySavedVars.dataVersion = 3;
+        return
+    end
+    local oldMaxQuality = legacySavedVars.maxQuality
+    if type(oldMaxQuality) ~= "table" then
+        local maxQuality = { }
+        for craftSkill, _ in pairs(self.craftSkills) do
+            maxQuality[craftSkill] = oldMaxQuality
+        end
+        legacySavedVars.maxQuality = maxQuality
+    end
+    if legacySavedVars.researchLineOrder then
+        legacySavedVars.researchLineOrder[-1] = nil
+    end
+    legacySavedVars.dataVersion = 3;
+end
+
+function addon:SetupOptions()
 
     -- Populate the dropdown choices
     self.traitChoices = { }
     self.traitChoicesValues = { }
+    self.defaults.traitResearchOrder = { }
     for researchCategory, config in pairs(self.traitConfig) do
         if config.name then
-            self.traitChoices[researchCategory] = { }
-            self.traitChoicesValues[researchCategory] = { }
+            self.traitChoicesValues[researchCategory] = { 0 }
+            self.traitChoices[researchCategory] = { NONE }
+            self.defaults.traitResearchOrder[researchCategory] = { }
             for _, types in ipairs(config.types) do
                 for traitIndex=types.min,types.max do
                     table.insert(self.traitChoicesValues[researchCategory], traitIndex)
-                    table.insert(self.traitChoices[researchCategory], GetString("SI_ITEMTRAITTYPE", traitIndex))
+                    table.insert(self.traitChoices[researchCategory], GetItemTraitTypeName(traitIndex))
+                    table.insert(self.defaults.traitResearchOrder[researchCategory], traitIndex)
                 end
             end
         end
@@ -72,36 +108,23 @@ function self.SetupOptions()
     self.defaults.enabled = { }
     for craftSkill, _ in pairs(self.craftSkills) do
         local researchLineCount = GetNumSmithingResearchLines(craftSkill)
-        self.researchLineChoices[craftSkill] = { }
-        self.researchLineChoicesValues[craftSkill] = { }
+        self.researchLineChoicesValues[craftSkill] = { 0 }
+        self.researchLineChoices[craftSkill] = { NONE }
+        self.defaults.researchLineOrder[craftSkill] = { }
         for researchLineIndex = 1, researchLineCount do
-            local researchLineName = GetSmithingResearchLineInfo(craftSkill, researchLineIndex)
+        local researchLineName = GetSmithingResearchLineInfo(craftSkill, researchLineIndex)
             table.insert(self.researchLineChoicesValues[craftSkill], researchLineIndex)
             table.insert(self.researchLineChoices[craftSkill], researchLineName)
+            table.insert(self.defaults.researchLineOrder[craftSkill], researchLineIndex)
         end
-        self.defaults.researchLineOrder[craftSkill] = self.researchLineChoicesValues[craftSkill]
         self.defaults.enabled[craftSkill] = true
-    end
+    end    
     
-    
-    
-    -- Setup saved var
-    self.settings = ZO_SavedVars:New("AutoResearch_Data", 1, nil, self.defaults)
-    if not self.settings.dataVersion then
-        self.settings.dataVersion = 1;
-        self.Print(GetString(SI_AUTORESEARCH_NOTICE))
-    elseif self.settings.dataVersion < 2 then
-        local oldMaxQuality = self.settings.maxQuality
-        if type(oldMaxQuality) ~= "table" then
-            local maxQuality = { }
-            for craftSkill, _ in pairs(self.craftSkills) do
-                maxQuality[craftSkill] = oldMaxQuality
-            end
-            self.settings.maxQuality = maxQuality
-        end
-        self.settings.researchLineOrder[-1] = nil
-        self.settings.dataVersion = 2;
-    end
+    -- Setup saved vars
+    local legacySettings = ZO_SavedVars:New(self.name .. "_Data", 1)
+    local legacyIsAccountWide = false
+    LibSavedVars:Init(self, self.name .. "_Account", self.name .. "_Character", self.defaults, nil, 
+                      legacySettings, legacyIsAccountWide, self.OnLegacySavedVarsMigrationStart)
 
     -- Setup options panel
     local LAM2 = LibStub("LibAddonMenu-2.0")
@@ -128,6 +151,9 @@ function self.SetupOptions()
     end
 
     local optionsTable = { 
+        -- Account-wide settings
+        LibSavedVars:GetLibAddonMenuSetting(self, self.defaults.useAccountSettings),
+        
         -- Bags to search for equipment to research
         {
             type = "dropdown",
@@ -146,8 +172,8 @@ function self.SetupOptions()
                 AUTORESEARCH_BAG_BOTH,
             },
             name = GetString(SI_AUTORESEARCH_BAGS),
-            getFunc = function() return self.settings.bags end,
-            setFunc = function(value) self.settings.bags = value end,
+            getFunc = function() return LibSavedVars:Get(self, "bags") end,
+            setFunc = function(value) LibSavedVars:Set(self, "bags", value) end,
             default = self.defaults.bags,
         },
     }
@@ -166,8 +192,8 @@ function self.SetupOptions()
                 type = "checkbox",
                 name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t"
                        .. GetString(SI_ADDON_MANAGER_ENABLED),
-                getFunc = function() return self.settings.enabled[craftSkill] end,
-                setFunc = function(value) self.settings.enabled[craftSkill] = value end,
+                getFunc = function() return LibSavedVars:Get(self, "enabled")[craftSkill] end,
+                setFunc = function(value) LibSavedVars:Get(self, "enabled")[craftSkill] = value end,
                 width = "full",
                 default = self.defaults.enabled[craftSkill],
             },
@@ -179,10 +205,10 @@ function self.SetupOptions()
                 choicesValues = qualityChoicesValues,
                 name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t"
                        .. GetString(SI_AUTORESEARCH_MAX_QUALITY),
-                getFunc = function() return self.settings.maxQuality[craftSkill] end,
-                setFunc = function(value) self.settings.maxQuality[craftSkill] = value end,
+                getFunc = function() return LibSavedVars:Get(self, "maxQuality")[craftSkill] end,
+                setFunc = function(value) LibSavedVars:Get(self, "maxQuality")[craftSkill] = value end,
                 default = self.defaults.maxQuality[craftSkill],
-                disabled = function() return not self.settings.enabled[craftSkill] end
+                disabled = function() return not LibSavedVars:Get(self, "enabled")[craftSkill] end
             },
             {
                 type = "divider",

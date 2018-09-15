@@ -1,31 +1,17 @@
 ## Title: Auto Research
 ## Author: |c99CCEFsilvereyes|r
 ## Description: Automatically starts trait research when opening craft stations.
-## Version: 1.10.0
-## APIVersion: 100023
-## OptionalDependsOn: DolgubonsLazyWritCreator FCOItemSaver
+## Version: 1.11.0
+## APIVersion: 100024 100025
+## DependsOn: LibStub LibSavedVars LibAddonMenu-2.0
+## OptionalDependsOn: DolgubonsLazyWritCreator FCOItemSaver LibAddonMenu-2.0
+## SavedVariables: AutoResearch_Account
+## SavedVariables: AutoResearch_Character
 ## SavedVariables: AutoResearch_Data
 
-## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
-
-; Libraries
-lib\LibStub\LibStub.lua
-lib\LibAddonMenu-2.0\LibAddonMenu-2.0.lua
-lib\LibAddonMenu-2.0\controls\panel.lua
-lib\LibAddonMenu-2.0\controls\submenu.lua
-lib\LibAddonMenu-2.0\controls\button.lua
-lib\LibAddonMenu-2.0\controls\checkbox.lua
-lib\LibAddonMenu-2.0\controls\colorpicker.lua
-lib\LibAddonMenu-2.0\controls\custom.lua
-lib\LibAddonMenu-2.0\controls\description.lua
-lib\LibAddonMenu-2.0\controls\dropdown.lua
-lib\LibAddonMenu-2.0\controls\editbox.lua
-lib\LibAddonMenu-2.0\controls\header.lua
-lib\LibAddonMenu-2.0\controls\slider.lua
-lib\LibAddonMenu-2.0\controls\texture.lua
-lib\LibAddonMenu-2.0\controls\iconpicker.lua
-lib\LibAddonMenu-2.0\controls\divider.lua
-lib\LibTimeout\LibTimeout.lua
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 
+## The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the 
+## United States and/or other countries. All rights reserved.
 
 ; Language files
 localization\en.lua

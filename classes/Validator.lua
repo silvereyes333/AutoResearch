@@ -65,6 +65,7 @@ local craftSkillsByItemSoundCategory = {
     [ITEM_SOUND_CATEGORY_TWO_HAND_HAMMER] = CRAFTING_TYPE_BLACKSMITHING,
     [ITEM_SOUND_CATEGORY_TWO_HAND_SWORD]  = CRAFTING_TYPE_BLACKSMITHING,
 }
+local LibSavedVars = LibStub("LibSavedVars")
 
 function class.Validator:New(...)
     local instance = ZO_Object.New(self)
@@ -132,7 +133,7 @@ function class.Validator:Validate()
     if not craftSkill or not ar.craftSkills[craftSkill] then
         return
     end
-    if quality > ar.settings.maxQuality[craftSkill] or (ar.styledCategories[itemTraitTypeCategory] and not cheapStyles[itemStyle]) then
+    if quality > LibSavedVars:Get(ar, "maxQuality")[craftSkill] or (ar.styledCategories[itemTraitTypeCategory] and not cheapStyles[itemStyle]) then
         return
     end
     local hasSet = GetItemLinkSetInfo(itemLink)

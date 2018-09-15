@@ -22,6 +22,7 @@ local class = ar.classes
 class.ResearchQueue = ZO_Object:Subclass()
 
 local name = ar.name .. "ResearchQueue"
+local LibSavedVars = LibStub("LibSavedVars")
 
 function class.ResearchQueue:New(...)
     local instance = ZO_Object.New(self)
@@ -44,7 +45,7 @@ function class.ResearchQueue:Initialize(craftSkill)
     self.researchOrderByTrait = {}
     self.maxResearchOrder = 0
     for _, researchCategory in ipairs( { "armor", "weapons", "jewelry" } ) do
-        for traitOrder,traitType in ipairs(ar.settings.traitResearchOrder[researchCategory]) do
+        for traitOrder,traitType in ipairs(LibSavedVars:Get(ar, "traitResearchOrder")[researchCategory]) do
             self.researchOrderByTrait[traitType] = traitOrder
             if traitOrder > self.maxResearchOrder then
                 self.maxResearchOrder = traitOrder
@@ -54,8 +55,10 @@ function class.ResearchQueue:Initialize(craftSkill)
     
     self.researchOrderByResearchLineIndex = {}
     self.maxResearchLineOrder = 0
-    for researchLineOrder,researchLineIndex in ipairs(ar.settings.researchLineOrder[craftSkill]) do
-        self.researchOrderByResearchLineIndex[researchLineIndex] = researchLineOrder
+    for researchLineOrder,researchLineIndex in ipairs(LibSavedVars:Get(ar, "researchLineOrder")[craftSkill]) do
+        if researchLineIndex > 0 then
+            self.researchOrderByResearchLineIndex[researchLineIndex] = researchLineOrder
+        end
         if researchLineOrder > self.maxResearchLineOrder then
             self.maxResearchLineOrder = researchLineOrder
         end
@@ -139,6 +142,9 @@ function class.ResearchQueue:Add(bagId, slotIndex)
     local itemLink = GetItemLink(bagId, slotIndex)
     local linkParser = ar.craftSkills[self.craftSkill].linkParser
     local researchLineIndex = linkParser:GetItemLinkResearchLineIndex(itemLink)
+    if not researchLineIndex or researchLineIndex == 0 then
+        return
+    end
     
     -- Ignore items for in-progress research lines or those with all traits known
     local researchLineUnknownCount = self.researchLineUnknownCounts[researchLineIndex]
@@ -147,7 +153,7 @@ function class.ResearchQueue:Add(bagId, slotIndex)
     end
     
     -- Ignore items with known traits
-    if not researchLineIndex or self.knownTraitsByResearchLine[researchLineIndex][traitType] then
+    if self.knownTraitsByResearchLine[researchLineIndex][traitType] then
         return
     end
     
@@ -174,7 +180,13 @@ function class.ResearchQueue:Add(bagId, slotIndex)
         researchLineIndex = researchLineIndex
     }
     local researchOrder = self.researchOrderByTrait[traitType]
+    if not researchOrder or researchOrder == 0 then
+        return
+    end
     local researchLineOrder = self.researchOrderByResearchLineIndex[researchLineIndex]
+    if not researchLineOrder or researchLineOrder == 0 then
+        return
+    end
     for i=1,groupCount do
         local group = self.data[i]
         if researchLineUnknownCount >= group.researchLineUnknownCount then
