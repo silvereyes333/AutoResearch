@@ -3,6 +3,7 @@ local addon = AutoResearch
 local COLOR_DISABLED = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_TEXT_COLORS, INTERFACE_TEXT_COLOR_DISABLED))
 local NONE = COLOR_DISABLED:Colorize(zo_strformat(GetString(SI_QUEST_TYPE_FORMAT), GetString(SI_ITEMTYPE0)))
 local LibSavedVars = LibStub("LibSavedVars")
+local savedVarsUpdateVersion2
 
 ----------------- Settings -----------------------
 
@@ -63,25 +64,6 @@ local function GetItemTraitTypeName(traitIndex)
     return GetString("SI_ITEMTRAITTYPE", traitIndex)
 end
 
-function addon:OnLegacySavedVarsMigrationStart(legacySavedVars)
-    if not legacySavedVars.dataVersion or legacySavedVars.dataVersion > 1 then
-        legacySavedVars.dataVersion = 3;
-        return
-    end
-    local oldMaxQuality = legacySavedVars.maxQuality
-    if type(oldMaxQuality) ~= "table" then
-        local maxQuality = { }
-        for craftSkill, _ in pairs(self.craftSkills) do
-            maxQuality[craftSkill] = oldMaxQuality
-        end
-        legacySavedVars.maxQuality = maxQuality
-    end
-    if legacySavedVars.researchLineOrder then
-        legacySavedVars.researchLineOrder[-1] = nil
-    end
-    legacySavedVars.dataVersion = 3;
-end
-
 function addon:SetupOptions()
 
     -- Populate the dropdown choices
@@ -121,11 +103,13 @@ function addon:SetupOptions()
     end    
     
     -- Setup saved vars
-    self.settings = LibSavedVars:New(self.name .. "_Account", self.name .. "_Character", self.defaults, false)
-    local legacySettings = ZO_SavedVars:New(self.name .. "_Data", 1)
-    self.settings:Migrate(legacySettings, self.OnLegacySavedVarsMigrationStart, self)
+    self.settings = LibSavedVars:NewCharacterSettings(self.name .. "_Character", self.defaults)
+                                :AddAccountWideToggle(self.name .. "_Account")
+                                :MigrateFromCharacterName({name=self.name .. "_Data"})
+                                :Version(2, savedVarsUpdateVersion2)
+                                :RemoveSettings(3, "dataVersion")
 
-    -- Setup options panel
+    --Setup options panel
     local LAM2 = LibStub("LibAddonMenu-2.0")
 
     local panelData = {
@@ -150,6 +134,7 @@ function addon:SetupOptions()
     end
 
     local optionsTable = { 
+        
         -- Account-wide settings
         self.settings:GetLibAddonMenuAccountCheckbox(),
         
@@ -256,4 +241,21 @@ function addon:SetupOptions()
     end
 
     LAM2:RegisterOptionControls(self.name .. "Options", optionsTable)
+end
+
+function savedVarsUpdateVersion2(sv)
+    local self = addon
+    local currentMaxQuality = sv.maxQuality
+    if type(currentMaxQuality) == "number" then
+        local maxQuality = { }
+        for craftSkill, _ in pairs(self.craftSkills) do
+            maxQuality[craftSkill] = currentMaxQuality
+        end
+        sv.maxQuality = maxQuality
+    elseif type(currentMaxQuality) ~= "table" then
+        sv.maxQuality = ZO_ShallowTableCopy(self.defaults.maxQuality)
+    end
+    if sv.researchLineOrder then
+        sv.researchLineOrder[-1] = nil
+    end
 end
