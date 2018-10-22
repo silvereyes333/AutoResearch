@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "|c99CCEFAuto Research|r",
-    version = "1.11.1",
+    version = "1.11.2",
     author = "|c99CCEFsilvereyes|r",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -95,7 +95,6 @@ AutoResearch = {
                 ITEM_TRAIT_TYPE_JEWELRY_INFUSED,
             },
         },
-        useAccountSettings = false,
         dataVersion = 3,
     },
     -- Class definition namespace
@@ -114,7 +113,6 @@ AutoResearch = {
     debugMode = false,
 }
 local addon = AutoResearch
-local LibSavedVars = LibStub("LibSavedVars")
 local libLazyCraftingName = "LibLazyCrafting"
 --[[ Outputs a colorized message to chat with the Auto Research prefix ]]--
 function addon:Print(input)
@@ -259,7 +257,7 @@ local function Start(eventCode, craftSkill, sameStation)
 
     -- Filter out any non-researchable craft skill lines
     local craftSkillInfo = self.craftSkills[craftSkill]
-    if not craftSkillInfo or not LibSavedVars:Get(self, "enabled")[craftSkill] then
+    if not craftSkillInfo or not self.settings.enabled[craftSkill] then
         TryWritCreator(craftSkill)
         return
     end
@@ -295,7 +293,7 @@ local function Start(eventCode, craftSkill, sameStation)
     
     -- Select which bags will be scanned for researchable items based on user configuration
     local bagIds
-    local settingsBags = LibSavedVars:Get(self, "bags")
+    local settingsBags = self.settings.bags
     if settingsBags == AUTORESEARCH_BAG_BOTH then
         bagIds = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
     elseif settingsBags == AUTORESEARCH_BAG_BACKPACK then

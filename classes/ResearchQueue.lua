@@ -22,7 +22,6 @@ local class = ar.classes
 class.ResearchQueue = ZO_Object:Subclass()
 
 local name = ar.name .. "ResearchQueue"
-local LibSavedVars = LibStub("LibSavedVars")
 
 function class.ResearchQueue:New(...)
     local instance = ZO_Object.New(self)
@@ -45,7 +44,7 @@ function class.ResearchQueue:Initialize(craftSkill)
     self.researchOrderByTrait = {}
     self.maxResearchOrder = 0
     for _, researchCategory in ipairs( { "armor", "weapons", "jewelry" } ) do
-        for traitOrder,traitType in ipairs(LibSavedVars:Get(ar, "traitResearchOrder")[researchCategory]) do
+        for traitOrder,traitType in ipairs(ar.settings.traitResearchOrder[researchCategory]) do
             self.researchOrderByTrait[traitType] = traitOrder
             if traitOrder > self.maxResearchOrder then
                 self.maxResearchOrder = traitOrder
@@ -55,7 +54,7 @@ function class.ResearchQueue:Initialize(craftSkill)
     
     self.researchOrderByResearchLineIndex = {}
     self.maxResearchLineOrder = 0
-    for researchLineOrder,researchLineIndex in ipairs(LibSavedVars:Get(ar, "researchLineOrder")[craftSkill]) do
+    for researchLineOrder,researchLineIndex in ipairs(ar.settings.researchLineOrder[craftSkill]) do
         if researchLineIndex > 0 then
             self.researchOrderByResearchLineIndex[researchLineIndex] = researchLineOrder
         end

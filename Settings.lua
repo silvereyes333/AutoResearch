@@ -31,9 +31,9 @@ local function CreateTraitOption(optionsTable, optionIndex, researchCategory)
         choicesValues = self.traitChoicesValues[researchCategory],
         name = "|t420%:100%:esoui/art/worldmap/worldmap_map_background.dds|t" 
             .. tostring(optionIndex),
-        getFunc = function() return LibSavedVars:Get(self, "traitResearchOrder")[researchCategory][optionIndex] end,
+        getFunc = function() return self.settings.traitResearchOrder[researchCategory][optionIndex] end,
         setFunc = function(value)
-            SwapDropdownValues(LibSavedVars:Get(self, "traitResearchOrder")[researchCategory], optionIndex, value)
+            SwapDropdownValues(self.settings.traitResearchOrder[researchCategory], optionIndex, value)
         end,
         default = self.defaults.traitResearchOrder[researchCategory][optionIndex]
     }
@@ -49,12 +49,12 @@ local function CreateResearchLineOption(optionsTable, optionIndex, craftSkill)
         choicesValues = self.researchLineChoicesValues[craftSkill],
         name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t" 
             .. tostring(optionIndex),
-        getFunc = function() return LibSavedVars:Get(self, "researchLineOrder")[craftSkill][optionIndex] end,
+        getFunc = function() return self.settings.researchLineOrder[craftSkill][optionIndex] end,
         setFunc = function(value)
-            SwapDropdownValues(LibSavedVars:Get(self, "researchLineOrder")[craftSkill], optionIndex, value)
+            SwapDropdownValues(self.settings.researchLineOrder[craftSkill], optionIndex, value)
         end,
         default = self.defaults.researchLineOrder[craftSkill][optionIndex],
-        disabled = function() return not LibSavedVars:Get(self, "enabled")[craftSkill] end
+        disabled = function() return not self.settings.enabled[craftSkill] end
     }
     
     table.insert(optionsTable, researchLineOption)
@@ -121,10 +121,9 @@ function addon:SetupOptions()
     end    
     
     -- Setup saved vars
+    self.settings = LibSavedVars:New(self.name .. "_Account", self.name .. "_Character", self.defaults, false)
     local legacySettings = ZO_SavedVars:New(self.name .. "_Data", 1)
-    local legacyIsAccountWide = false
-    LibSavedVars:Init(self, self.name .. "_Account", self.name .. "_Character", self.defaults, nil, 
-                      legacySettings, legacyIsAccountWide, self.OnLegacySavedVarsMigrationStart)
+    self.settings:Migrate(legacySettings, self.OnLegacySavedVarsMigrationStart, self)
 
     -- Setup options panel
     local LAM2 = LibStub("LibAddonMenu-2.0")
@@ -152,7 +151,7 @@ function addon:SetupOptions()
 
     local optionsTable = { 
         -- Account-wide settings
-        LibSavedVars:GetLibAddonMenuSetting(self, self.defaults.useAccountSettings),
+        self.settings:GetLibAddonMenuAccountCheckbox(),
         
         -- Bags to search for equipment to research
         {
@@ -172,8 +171,8 @@ function addon:SetupOptions()
                 AUTORESEARCH_BAG_BOTH,
             },
             name = GetString(SI_AUTORESEARCH_BAGS),
-            getFunc = function() return LibSavedVars:Get(self, "bags") end,
-            setFunc = function(value) LibSavedVars:Set(self, "bags", value) end,
+            getFunc = function() return self.settings.bags end,
+            setFunc = function(value) self.settings.bags = value end,
             default = self.defaults.bags,
         },
     }
@@ -192,8 +191,8 @@ function addon:SetupOptions()
                 type = "checkbox",
                 name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t"
                        .. GetString(SI_ADDON_MANAGER_ENABLED),
-                getFunc = function() return LibSavedVars:Get(self, "enabled")[craftSkill] end,
-                setFunc = function(value) LibSavedVars:Get(self, "enabled")[craftSkill] = value end,
+                getFunc = function() return self.settings.enabled[craftSkill] end,
+                setFunc = function(value) self.settings.enabled[craftSkill] = value end,
                 width = "full",
                 default = self.defaults.enabled[craftSkill],
             },
@@ -205,10 +204,10 @@ function addon:SetupOptions()
                 choicesValues = qualityChoicesValues,
                 name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t"
                        .. GetString(SI_AUTORESEARCH_MAX_QUALITY),
-                getFunc = function() return LibSavedVars:Get(self, "maxQuality")[craftSkill] end,
-                setFunc = function(value) LibSavedVars:Get(self, "maxQuality")[craftSkill] = value end,
+                getFunc = function() return self.settings.maxQuality[craftSkill] end,
+                setFunc = function(value) self.settings.maxQuality[craftSkill] = value end,
                 default = self.defaults.maxQuality[craftSkill],
-                disabled = function() return not LibSavedVars:Get(self, "enabled")[craftSkill] end
+                disabled = function() return not self.settings.enabled[craftSkill] end
             },
             {
                 type = "divider",
