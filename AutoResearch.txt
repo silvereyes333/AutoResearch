@@ -1,13 +1,12 @@
 ## Title: Auto Research
-## Author: |c99CCEFsilvereyes|r
+## Author: silvereyes
 ## Description: Automatically starts trait research when opening craft stations.
-## Version: 1.12.0
-## APIVersion: 100025 100026
-## DependsOn: LibStub LibSavedVars LibAddonMenu-2.0
-## OptionalDependsOn: DolgubonsLazyWritCreator FCOItemSaver LibAddonMenu-2.0
+## Version: 2.0.0
+## APIVersion: 100026 100027
+## DependsOn: LibSavedVars LibAddonMenu-2.0 LibCustomMenu
+## OptionalDependsOn: DolgubonsLazyWritCreator FCOItemSaver LibSets
 ## SavedVariables: AutoResearch_Account
 ## SavedVariables: AutoResearch_Character
-## SavedVariables: AutoResearch_Data
 
 ## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 
 ## The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the 

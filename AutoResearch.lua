@@ -5,9 +5,9 @@ AUTORESEARCH_BAG_BOTH = 3
 
 AutoResearch = {
     name = "AutoResearch",
-    title = "|c99CCEFAuto Research|r",
-    version = "1.12.0",
-    author = "|c99CCEFsilvereyes|r",
+    title = "Auto Research",
+    version = "2.0.0",
+    author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
     traitConfig = {
@@ -95,6 +95,27 @@ AutoResearch = {
                 ITEM_TRAIT_TYPE_JEWELRY_INFUSED,
             },
         },
+        styles = {
+          [ITEMSTYLE_RACIAL_HIGH_ELF]   = true,
+          [ITEMSTYLE_RACIAL_DARK_ELF]   = true,
+          [ITEMSTYLE_RACIAL_WOOD_ELF]   = true,
+          [ITEMSTYLE_RACIAL_NORD]       = true,
+          [ITEMSTYLE_RACIAL_BRETON]     = true,
+          [ITEMSTYLE_RACIAL_REDGUARD]   = true,
+          [ITEMSTYLE_RACIAL_KHAJIIT]    = true,
+          [ITEMSTYLE_RACIAL_ORC]        = true,
+          [ITEMSTYLE_RACIAL_ARGONIAN]   = true,
+          [ITEMSTYLE_RACIAL_IMPERIAL]   = true,
+          [ITEMSTYLE_AREA_ANCIENT_ELF]  = true,
+          [ITEMSTYLE_AREA_REACH]        = true,
+          [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
+        },
+        sets = {},
+        chatColor = { 1, 1, 1, 1 },
+        shortPrefix = true,
+        chatUseSystemColor = true,
+        chatContainerOpen = true,
+        chatContentsSummary = true,
     },
     -- Class definition namespace
     classes = {},
@@ -109,13 +130,17 @@ AutoResearch = {
         [ITEM_TRAIT_TYPE_CATEGORY_ARMOR]  = true,
         [ITEM_TRAIT_TYPE_CATEGORY_WEAPON] = true,
     },
+    invalidStyles = {
+        [ITEMSTYLE_NONE]      = true, -- No style
+        [ITEMSTYLE_UNIVERSAL] = true, -- Crown Mimic Stone / Universal style
+    },
     debugMode = false,
 }
 local addon = AutoResearch
 local libLazyCraftingName = "LibLazyCrafting"
 --[[ Outputs a colorized message to chat with the Auto Research prefix ]]--
 function addon:Print(input)
-    local output = zo_strformat("<<1>>|cFFFFFF: <<2>>|r", self.title, input)
+    local output = self.prefix .. input .. self.suffix
     d(output)
 end
 function addon:Debug(input)
@@ -166,7 +191,7 @@ local function TryWritCreator(craftSkill)
             d("Old version of Dolgubon's Lazy Writ Crafter detected. Please update your addons.")
         end
 	end
-    local LLC = LibStub("LibLazyCrafting", true)
+    local LLC = LibLazyCrafting or LibStub("LibLazyCrafting", true)
     if LLC and LLC.craftInteract then
         self:Debug("Calling LibLazyCrafting.craftInteract(1, "..tostring(craftSkill)..")")
         LLC.craftInteract(1, craftSkill)
@@ -191,9 +216,12 @@ local function ResearchItem(craftSkill, bagId, slotIndex)
     local itemLink = GetItemLink(bagId, slotIndex)
     local traitType = GetItemLinkTraitInfo(itemLink)
     local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
-    local message = zo_strformat("<<1>> <<2>> (|r<<3>>|cFFFFFF)", 
+    local message = zo_strformat("<<1>> <<2>> (<<3>><<4>><<5>>)", 
         GetString(SI_GAMEPAD_SMITHING_CURRENT_RESEARCH_HEADER),
-        itemLink, traitName)
+        itemLink, 
+        self.suffix,
+        traitName,
+        self.startColor)
     self:Print(message)
     
     -- If research doesn't start in 1.5 seconds, then time out and end auto-research
@@ -351,6 +379,52 @@ local function OnAlertNoSuppression(category, soundId, message)
     end
 end
 
+local function AddContextMenu(inventorySlot, slotActions)
+    local self = addon
+    local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    local itemLink = GetItemLink(bagId, slotIndex)
+    local itemType = GetItemLinkItemType(itemLink)
+    if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON then return end
+    local itemStyle = GetItemLinkItemStyle(itemLink)
+    if self.invalidStyles[itemStyle] then return end
+    local subMenu = {}
+    local equipType = GetItemLinkEquipType(itemLink)
+    if equipType ~= EQUIP_TYPE_NECK and equipType ~= EQUIP_TYPE_RING then
+        local itemStyleName = GetItemStyleName(itemStyle)
+        local toggleStyle = function() self.settings.styles[itemStyle] = not self.settings.styles[itemStyle] end
+        table.insert(subMenu, {
+            label = "  " .. zo_strformat(GetString(SI_INVENTORY_TRAIT_STATUS_TOOLTIP),
+                                 GetString(SI_AUTORESEARCH_STYLES),
+                                 tostring(itemStyleName)),
+            callback = toggleStyle,
+            checked = function() return self.settings.styles[itemStyle] end,
+            itemType = MENU_ADD_OPTION_CHECKBOX,
+        })
+    end
+    if LibSets and self.settings.setsAllowed and self.settings.sets then
+        local hasSet, setName, _, _, _, setId = GetItemLinkSetInfo(itemLink)
+        if hasSet then
+            local toggleSet = function() self.settings.sets[setId] = not self.settings.sets[setId] end
+            table.insert(subMenu, {
+                label = "  " .. zo_strformat(GetString(SI_INVENTORY_TRAIT_STATUS_TOOLTIP),
+                                     GetString(SI_AUTORESEARCH_SETS),
+                                     tostring(setName)),
+                callback = toggleSet,
+                checked = function() return self.settings.sets[setId] end,
+                itemType = MENU_ADD_OPTION_CHECKBOX,
+            })
+        end
+    end
+    if #subMenu > 0 then
+        AddCustomSubMenuItem(self.title, subMenu)
+    end
+end
+
+local function SetupContextMenu()
+    local menu = LibCustomMenu or LibStub("LibCustomMenu")
+    menu:RegisterContextMenu(AddContextMenu, menu.CATEGORY_LATE)
+end
+
 --[[ Runs once upon login or /reloadui for every addon that is loaded ]]--
 local function OnAddonLoaded(event, name)
 
@@ -364,7 +438,7 @@ local function OnAddonLoaded(event, name)
     if WritCreater then
         EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFTING_STATION_INTERACT)
     end
-    local LLC = LibStub("LibLazyCrafting", true)
+    local LLC = LibLazyCrafting or LibStub("LibLazyCrafting", true)
     if LLC then
         EVENT_MANAGER:UnregisterForEvent("LibLazyCrafting", EVENT_CRAFTING_STATION_INTERACT)
     end
@@ -380,6 +454,8 @@ local function OnAddonLoaded(event, name)
     
     -- Set up settings menu.  See Settings.lua.
     self:SetupOptions()
+    
+    SetupContextMenu()
 end
 
 -- Wire up addon loaded event

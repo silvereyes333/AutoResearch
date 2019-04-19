@@ -24,21 +24,6 @@ local class = ar.classes
 class.Validator = ZO_Object:Subclass()
 
 local name = ar.name .. "Validator"
-local cheapStyles = {
-    [ITEMSTYLE_RACIAL_HIGH_ELF]   = true,
-    [ITEMSTYLE_RACIAL_DARK_ELF]   = true,
-    [ITEMSTYLE_RACIAL_WOOD_ELF]   = true,
-    [ITEMSTYLE_RACIAL_NORD]       = true,
-    [ITEMSTYLE_RACIAL_BRETON]     = true,
-    [ITEMSTYLE_RACIAL_REDGUARD]   = true,
-    [ITEMSTYLE_RACIAL_KHAJIIT]    = true,
-    [ITEMSTYLE_RACIAL_ORC]        = true,
-    [ITEMSTYLE_RACIAL_ARGONIAN]   = true,
-    [ITEMSTYLE_RACIAL_IMPERIAL]   = true,
-    [ITEMSTYLE_AREA_ANCIENT_ELF]  = true,
-    [ITEMSTYLE_AREA_REACH]        = true,
-    [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
-}
 local invalidTraits = {
     [ITEM_TRAIT_TYPE_NONE]              = true,
     [ITEM_TRAIT_TYPE_WEAPON_INTRICATE]  = true,
@@ -132,11 +117,11 @@ function class.Validator:Validate()
     if not craftSkill or not ar.craftSkills[craftSkill] then
         return
     end
-    if quality > ar.settings.maxQuality[craftSkill] or (ar.styledCategories[itemTraitTypeCategory] and not cheapStyles[itemStyle]) then
+    if quality > ar.settings.maxQuality[craftSkill] or (ar.styledCategories[itemTraitTypeCategory] and not self.settings.styles[itemStyle]) then
         return
     end
-    local hasSet = GetItemLinkSetInfo(itemLink)
-    if hasSet then
+    local hasSet, _, _, _, _, setId = GetItemLinkSetInfo(itemLink)
+    if hasSet and (not LibSets or not ar.settings.sets or not ar.settings.setsAllowed or not ar.settings.sets[setId]) then
         return
     end
     return traitType

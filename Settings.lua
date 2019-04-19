@@ -2,8 +2,9 @@ local addon = AutoResearch
 
 local COLOR_DISABLED = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_TEXT_COLORS, INTERFACE_TEXT_COLOR_DISABLED))
 local NONE = COLOR_DISABLED:Colorize(zo_strformat(GetString(SI_QUEST_TYPE_FORMAT), GetString(SI_ITEMTYPE0)))
-local LibSavedVars = LibStub("LibSavedVars")
-local savedVarsUpdateVersion2
+local INDENT = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t"
+local LSV = LibSavedVars or LibStub("LibSavedVars")
+local savedVarsUpdateVersion2, refreshPrefix
 
 ----------------- Settings -----------------------
 
@@ -30,8 +31,7 @@ local function CreateTraitOption(optionsTable, optionIndex, researchCategory)
         width = "half",
         choices = addon.traitChoices[researchCategory],
         choicesValues = self.traitChoicesValues[researchCategory],
-        name = "|t420%:100%:esoui/art/worldmap/worldmap_map_background.dds|t" 
-            .. tostring(optionIndex),
+        name = INDENT .. tostring(optionIndex),
         getFunc = function() return self.settings.traitResearchOrder[researchCategory][optionIndex] end,
         setFunc = function(value)
             SwapDropdownValues(self.settings.traitResearchOrder[researchCategory], optionIndex, value)
@@ -48,8 +48,7 @@ local function CreateResearchLineOption(optionsTable, optionIndex, craftSkill)
         width = "half",
         choices = self.researchLineChoices[craftSkill],
         choicesValues = self.researchLineChoicesValues[craftSkill],
-        name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t" 
-            .. tostring(optionIndex),
+        name = INDENT .. tostring(optionIndex),
         getFunc = function() return self.settings.researchLineOrder[craftSkill][optionIndex] end,
         setFunc = function(value)
             SwapDropdownValues(self.settings.researchLineOrder[craftSkill], optionIndex, value)
@@ -103,14 +102,16 @@ function addon:SetupOptions()
     end    
     
     -- Setup saved vars
-    self.settings = LibSavedVars:NewCharacterSettings(self.name .. "_Character", self.defaults)
-                                :AddAccountWideToggle(self.name .. "_Account")
-                                :MigrateFromCharacterName({name=self.name .. "_Data"})
-                                :Version(2, savedVarsUpdateVersion2)
-                                :RemoveSettings(3, "dataVersion")
+    self.settings = LSV:NewCharacterSettings(self.name .. "_Character", self.defaults)
+                       :AddAccountWideToggle(self.name .. "_Account")
+                       :Version(2, savedVarsUpdateVersion2)
+                       :RemoveSettings(3, "dataVersion")
+    
+    self.chatColor = ZO_ColorDef:New(unpack(self.settings.chatColor))
+    refreshPrefix()
 
     --Setup options panel
-    local LAM2 = LibStub("LibAddonMenu-2.0")
+    local LAM2 = LibAddonMenu2 or LibStub("LibAddonMenu-2.0")
 
     local panelData = {
         type = "panel",
@@ -133,6 +134,8 @@ function addon:SetupOptions()
         table.insert(qualityChoices, qualityString)
     end
 
+        
+    --[[ General Options ]]--
     local optionsTable = { 
         
         -- Account-wide settings
@@ -160,8 +163,66 @@ function addon:SetupOptions()
             setFunc = function(value) self.settings.bags = value end,
             default = self.defaults.bags,
         },
+        
+        -- Chat Messages
+        {
+            type     = "submenu",
+            name     = GetString(SI_AUTORESEARCH_CHAT_MESSAGES),
+            controls = {
+          
+                -- Short prefix
+                {
+                    type = "checkbox",
+                    name = GetString(SI_AUTORESEARCH_SHORT_PREFIX),
+                    tooltip = GetString(SI_AUTORESEARCH_SHORT_PREFIX_TOOLTIP),
+                    getFunc = function() return self.settings.shortPrefix end,
+                    setFunc = function(value)
+                                  self.settings.shortPrefix = value
+                                  refreshPrefix()
+                              end,
+                    default = self.defaults.shortPrefix,
+                },
+                -- Use default system color
+                {
+                    type = "checkbox",
+                    name = GetString(SI_AUTORESEARCH_CHAT_USE_SYSTEM_COLOR),
+                    getFunc = function() return self.settings.chatUseSystemColor end,
+                    setFunc = function(value)
+                                  self.settings.chatUseSystemColor = value
+                                  refreshPrefix()
+                              end,
+                    default = self.defaults.chatUseSystemColor,
+                },
+                -- Message color
+                {
+                    type = "colorpicker",
+                    name = GetString(SI_AUTORESEARCH_CHAT_COLOR),
+                    getFunc = function() return unpack(self.settings.chatColor) end,
+                    setFunc = function(r, g, b, a)
+                                  self.settings.chatColor = { r, g, b, a }
+                                  self.chatColor = ZO_ColorDef:New(r, g, b, a)
+                                  refreshPrefix()
+                              end,
+                    default = self.defaults.chatColor,
+                    disabled = function() return self.settings.chatUseSystemColor end,
+                },
+                -- Old Prefix Colors
+                {
+                    type = "checkbox",
+                    name = GetString(SI_AUTORESEARCH_COLORED_PREFIX),
+                    tooltip = GetString(SI_AUTORESEARCH_COLORED_PREFIX_TOOLTIP),
+                    getFunc = function() return self.settings.coloredPrefix end,
+                    setFunc = function(value)
+                                  self.settings.coloredPrefix = value
+                                  refreshPrefix()
+                              end,
+                    default = self.defaults.coloredPrefix,
+                },
+            },
+        },
     }
-    
+        
+    --[[ Skill Lines to Research ]]--
     local traitLinesTitle = zo_strformat("<<m:1>>", GetString(SI_SMITHING_RESEARCH_LINE_HEADER), 2)
     local pairFormat = GetString(SI_INVENTORY_TRAIT_STATUS_TOOLTIP)
     for _, craftSkill in ipairs({ CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE_CLOTHIER, 
@@ -174,8 +235,7 @@ function addon:SetupOptions()
             },
             {
                 type = "checkbox",
-                name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t"
-                       .. GetString(SI_ADDON_MANAGER_ENABLED),
+                name = INDENT .. GetString(SI_ADDON_MANAGER_ENABLED),
                 getFunc = function() return self.settings.enabled[craftSkill] end,
                 setFunc = function(value) self.settings.enabled[craftSkill] = value end,
                 width = "full",
@@ -187,8 +247,7 @@ function addon:SetupOptions()
                 width = "full",
                 choices = qualityChoices,
                 choicesValues = qualityChoicesValues,
-                name = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t"
-                       .. GetString(SI_AUTORESEARCH_MAX_QUALITY),
+                name = INDENT .. GetString(SI_AUTORESEARCH_MAX_QUALITY),
                 getFunc = function() return self.settings.maxQuality[craftSkill] end,
                 setFunc = function(value) self.settings.maxQuality[craftSkill] = value end,
                 default = self.defaults.maxQuality[craftSkill],
@@ -199,6 +258,7 @@ function addon:SetupOptions()
                 width = "full",
             },
         }
+        
         -- Number of research lines
         local researchLineCount = GetNumSmithingResearchLines(craftSkill)
         local minColumn2Index = math.ceil( researchLineCount / 2 ) + 1
@@ -218,6 +278,7 @@ function addon:SetupOptions()
             })
     end
 
+    --[[ Traits ]]--
     for _, researchCategory in ipairs({ "armor", "weapons", "jewelry" }) do
         local categoryNameStringId = self.traitConfig[researchCategory].name
         if not categoryNameStringId then break end
@@ -239,8 +300,168 @@ function addon:SetupOptions()
                 controls = controls,
             })
     end
+    
+    --[[ Styles to Research ]]--
+    do
+        local controls = {}
+        
+        self.styleOptions = {}
+        self.styleOptionValues = {}
+        local itemStyleIdsByName = {}
+
+        for i = 1, GetNumValidItemStyles() do
+          local itemStyleId = GetValidItemStyleId(i)
+          local itemStyleName = GetItemStyleName(itemStyleId)
+          if not self.invalidStyles[itemStyleId] then
+              table.insert(self.styleOptions, itemStyleName)
+              itemStyleIdsByName[itemStyleName] = itemStyleId
+          end
+        end
+        table.sort(self.styleOptions)
+        for _, itemStyleName in ipairs(self.styleOptions) do
+            local itemStyleId = itemStyleIdsByName[itemStyleName]
+            table.insert(self.styleOptionValues, itemStyleId)
+            table.insert(controls, 
+                {
+                    type = "checkbox",
+                    name = itemStyleName,
+                    getFunc = function() return self.settings.styles[itemStyleId] end,
+                    setFunc = function(value) self.settings.styles[itemStyleId] = value end,
+                    width = "full",
+                    default = self.defaults.styles[itemStyleId],
+                })
+        end
+        
+        table.insert(optionsTable,
+            -- Submenu
+            {
+                type = "submenu",
+                name = GetString(SI_AUTORESEARCH_STYLES),
+                controls = controls,
+            })
+    end
+    
+    --[[ Sets to Research ]]--
+    do
+        local controls = {}
+        local setIds
+        if LibSets and LibSets.GetAllSetIds then
+            setIds = LibSets.GetAllSetIds()
+        end
+        
+        if setIds and #setIds > 0 then
+            table.insert(controls, 
+                {
+                    type = "checkbox",
+                    name = GetString(SI_ADDONLOADSTATE2),
+                    getFunc = function() return self.settings.setsAllowed end,
+                    setFunc = function(value) self.settings.setsAllowed = value end,
+                    width = "full",
+                    default = false,
+                })
+            table.insert(controls, 
+                {
+                    type = "divider",
+                    width = "full",
+                })
+            local setNames = { isOverland = {}, isDungeon = {}, isMonster = {}, isCrafted = {} }
+            local setNameIds = { isOverland = {}, isDungeon = {}, isMonster = {}, isCrafted = {} }
+            
+            for _, setId in ipairs(setIds) do
+                local setName = LibSets.GetSetName(setId)
+                local setInfo = LibSets.GetSetInfo(setId)
+                if setInfo and setInfo.setTypes then
+                    for setType, isSetType in pairs(setInfo.setTypes) do
+                        if isSetType and setName then
+                            setNameIds[setType][setName] = setId
+                            table.insert(setNames[setType], setName)
+                            break
+                        end
+                    end
+                end
+            end
+            for _, setTypeNames in pairs(setNames) do
+                table.sort(setTypeNames)
+            end
+            local setTypeCategories = { "boe", "bop" }
+            local setTypeCategoryTitles = { ["boe"] = GetString(SI_BINDTYPE2), ["bop"] = GetString(SI_BINDTYPE1) }
+            local setTypes = { ["boe"] = { "isOverland", "isCrafted" }, ["bop"] = { "isDungeon", "isMonster" } }
+            local setTypeTitles = {
+                ["isOverland"] = GetString(SI_CUSTOMERSERVICESUBMITFEEDBACKSUBCATEGORIES503),
+                ["isCrafted"] = GetString(SI_ITEM_FORMAT_STR_CRAFTED),
+                ["isDungeon"] = GetString(SI_CUSTOMERSERVICESUBMITFEEDBACKCATEGORIES10),
+                ["isMonster"] = GetString(SI_SPECIALIZEDITEMTYPE406),
+            }
+            for _, setTypeCategory in ipairs(setTypeCategories) do
+                local categoryControls = {}
+                for _, setType in ipairs(setTypes[setTypeCategory]) do
+                    local setTypeControls = {}
+                    for _, setName in ipairs(setNames[setType]) do
+                        local setId = setNameIds[setType][setName]
+                        table.insert(setTypeControls, 
+                            {
+                                type = "checkbox",
+                                name = setName,
+                                getFunc = function() return self.settings.sets[setId] end,
+                                setFunc = function(value) self.settings.sets[setId] = value end,
+                                width = "full",
+                                default = false,
+                                disabled = function() return not self.settings.setsAllowed end,
+                            })
+                    end
+                    table.insert(categoryControls,
+                        -- Set Type Submenu
+                        {
+                            type = "submenu",
+                            name = setTypeTitles[setType],
+                            controls = setTypeControls,
+                            disabled = function() return not self.settings.setsAllowed end,
+                        })
+                end
+                table.insert(controls,
+                -- Set Category Submenu
+                {
+                    type = "submenu",
+                    name = setTypeCategoryTitles[setTypeCategory],
+                    controls = categoryControls,
+                    disabled = function() return not self.settings.setsAllowed end,
+                })
+            end
+            
+        else
+            table.insert(controls, 
+                {
+                    type = "description",
+                    text = ZO_ERROR_COLOR:Colorize(zo_strformat(GetString(SI_ADDON_MANAGER_DEPENDENCIES), "LibSets >= 0.0.6")),
+                    width = "full",
+                })
+        end
+        table.insert(optionsTable,
+            -- Submenu
+            {
+                type = "submenu",
+                name = GetString(SI_AUTORESEARCH_SETS),
+                controls = controls,
+            })
+    end
 
     LAM2:RegisterOptionControls(self.name .. "Options", optionsTable)
+end
+
+function refreshPrefix()
+    local self = addon
+    local stringId
+    local startColor = self.settings.chatUseSystemColor and "" or "|c" .. self.chatColor:ToHex()
+    if self.settings.coloredPrefix then
+        self.prefix = GetString(self.settings.shortPrefix and SI_AUTORESEARCH_PREFIX_SHORT_COLOR or SI_AUTORESEARCH_PREFIX_COLOR)
+            .. "|r" .. startColor .. " "
+    else
+        self.prefix = startColor
+            .. GetString(self.settings.shortPrefix and SI_AUTORESEARCH_PREFIX_SHORT or SI_AUTORESEARCH_PREFIX)
+            .. " "
+    end
+    self.suffix = self.settings.chatUseSystemColor and "" or "|r"
+    self.startColor = startColor
 end
 
 function savedVarsUpdateVersion2(sv)
