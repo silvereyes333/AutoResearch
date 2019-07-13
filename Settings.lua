@@ -349,7 +349,7 @@ function addon:SetupOptions()
             setIds = LibSets.GetAllSetIds()
         end
         
-        if setIds and #setIds > 0 then
+        if setIds and next(setIds) then
             table.insert(controls, 
                 {
                     type = "checkbox",
@@ -364,25 +364,67 @@ function addon:SetupOptions()
                     type = "divider",
                     width = "full",
                 })
+              
+            -- LibSets >= 0.06
+            local setTypeMap
+            if LIBSETS_SETTYPE_ARENA then
+                setTypeMap = {
+                    [LIBSETS_SETTYPE_ARENA] = "isDungeon",
+                    [LIBSETS_SETTYPE_BATTLEGROUND] = "isOverland",
+                    [LIBSETS_SETTYPE_CRAFTED] = "isCrafted",
+                    [LIBSETS_SETTYPE_CYRODIIL] = "isOverland",
+                    [LIBSETS_SETTYPE_DAILYRANDOMDUNGEONANDICREWARD] = "isOverland",
+                    [LIBSETS_SETTYPE_DUNGEON] = "isDungeon",
+                    [LIBSETS_SETTYPE_IMPERIALCITY] = "isOverland",
+                    [LIBSETS_SETTYPE_MONSTER] = "isMonster",
+                    [LIBSETS_SETTYPE_OVERLAND] = "isOverland",
+                    [LIBSETS_SETTYPE_SPECIAL] = "isDungeon",
+                    [LIBSETS_SETTYPE_TRIAL] = "isDungeon",
+                }
+                local invertedSetIds = {}
+                for setId, _ in pairs(setIds) do
+                    table.insert(invertedSetIds, setId)
+                end
+                setIds = invertedSetIds
+                invertedSetIds = nil
+            else
+                setTypeMap = {}
+            end
+            self.setIds = setIds
+              
             local setNames = { isOverland = {}, isDungeon = {}, isMonster = {}, isCrafted = {} }
             local setNameIds = { isOverland = {}, isDungeon = {}, isMonster = {}, isCrafted = {} }
             
             for _, setId in ipairs(setIds) do
                 local setName = LibSets.GetSetName(setId)
                 local setInfo = LibSets.GetSetInfo(setId)
-                if setInfo and setInfo.setTypes then
-                    for setType, isSetType in pairs(setInfo.setTypes) do
-                        if isSetType and setName then
+                if setInfo then
+                    if setInfo.setTypes then
+                        for setType, isSetType in pairs(setInfo.setTypes) do
+                            if isSetType and setName then
+                                setNameIds[setType][setName] = setId
+                                table.insert(setNames[setType], setName)
+                                break
+                            end
+                        end
+                    elseif setInfo.setType then
+                        if setTypeMap[setInfo.setType] then
+                            local setType = setTypeMap[setInfo.setType]
                             setNameIds[setType][setName] = setId
                             table.insert(setNames[setType], setName)
-                            break
                         end
+                    else
+                        d("setInfo.setType is empty")
                     end
+                else
+                    d("setInfo is empty")
                 end
             end
             for _, setTypeNames in pairs(setNames) do
                 table.sort(setTypeNames)
             end
+            self.setNames = setNames
+            self.setNameIds = setNameIds
             local setTypeCategories = { "boe", "bop" }
             local setTypeCategoryTitles = { ["boe"] = GetString(SI_BINDTYPE2), ["bop"] = GetString(SI_BINDTYPE1) }
             local setTypes = { ["boe"] = { "isOverland", "isCrafted" }, ["bop"] = { "isDungeon", "isMonster" } }

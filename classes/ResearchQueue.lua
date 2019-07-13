@@ -132,15 +132,14 @@ function class.ResearchQueue:Add(bagId, slotIndex)
     
     -- Ignore non-researchable items
     local validator = class.Validator:New(bagId, slotIndex)
-    local traitType = validator:Validate()
-    if not traitType then
+    local newSlot = validator:Validate()
+    if not newSlot then
         return
     end
 
     -- Get the research line
-    local itemLink = GetItemLink(bagId, slotIndex)
     local linkParser = ar.craftSkills[self.craftSkill].linkParser
-    local researchLineIndex = linkParser:GetItemLinkResearchLineIndex(itemLink)
+    local researchLineIndex = linkParser:GetItemLinkResearchLineIndex(newSlot.itemLink)
     if not researchLineIndex or researchLineIndex == 0 then
         return
     end
@@ -152,7 +151,7 @@ function class.ResearchQueue:Add(bagId, slotIndex)
     end
     
     -- Ignore items with known traits
-    if self.knownTraitsByResearchLine[researchLineIndex][traitType] then
+    if self.knownTraitsByResearchLine[researchLineIndex][newSlot.itemTraitType] then
         return
     end
     
@@ -173,12 +172,8 @@ function class.ResearchQueue:Add(bagId, slotIndex)
         AddNewGroup(self, researchLineUnknownCount, 1)
         groupCount = 1
     end
-    local newSlot = { 
-        bagId = bagId, 
-        slotIndex = slotIndex,
-        researchLineIndex = researchLineIndex
-    }
-    local researchOrder = self.researchOrderByTrait[traitType]
+    newSlot.researchLineIndex = researchLineIndex
+    local researchOrder = self.researchOrderByTrait[newSlot.itemTraitType]
     if not researchOrder or researchOrder == 0 then
         return
     end
@@ -199,7 +194,15 @@ function class.ResearchQueue:Add(bagId, slotIndex)
                 local slotResearchLineOrder = self.researchOrderByResearchLineIndex[slot.researchLineIndex]
                 -- A slot is already assigned to this research line for this research order
                 if researchLineOrder == slotResearchLineOrder then
-                    -- TODO: replace if level is lower or quality is lower
+                  
+                    -- Prioritize lower level, lower quality, and non-set items
+                    if newSlot.requiredLevel < slot.requiredLevel 
+                       or newSlot.requiredChampionPoints < slot.requiredChampionPoints
+                       or newSlot.quality < slot.quality
+                       or (not newSlot.hasSet and slot.hasSet)
+                    then
+                        slots[slotOrder] = newSlot
+                    end
                     return
                     
                 -- First slot identified for this research line and research order

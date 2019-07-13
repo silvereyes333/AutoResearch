@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "2.0.1",
+    version = "2.1.0",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -385,11 +385,11 @@ local function AddContextMenu(inventorySlot, slotActions)
     local itemLink = GetItemLink(bagId, slotIndex)
     local itemType = GetItemLinkItemType(itemLink)
     if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON then return end
-    local itemStyle = GetItemLinkItemStyle(itemLink)
-    if self.invalidStyles[itemStyle] then return end
     local subMenu = {}
     local equipType = GetItemLinkEquipType(itemLink)
     if equipType ~= EQUIP_TYPE_NECK and equipType ~= EQUIP_TYPE_RING then
+        local itemStyle = GetItemLinkItemStyle(itemLink)
+        if self.invalidStyles[itemStyle] then return end
         local itemStyleName = GetItemStyleName(itemStyle)
         local toggleStyle = function() self.settings.styles[itemStyle] = not self.settings.styles[itemStyle] end
         table.insert(subMenu, {

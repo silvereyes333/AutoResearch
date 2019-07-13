@@ -92,37 +92,38 @@ end
 
 --[[ If the item slot for this instance is valid, returns the item type.  Otherwise, returns nil. ]]--
 function class.Validator:Validate()
-    local locked = IsItemPlayerLocked(self.bagId, self.slotIndex)
-    if locked then 
+    local slotData = SHARED_INVENTORY:GenerateSingleSlotData(self.bagId, self.slotIndex)
+    if not slotData or slotData.isPlayerLocked then 
         return
     end
     if self:IsFcoisLocked() then
         return
     end
-    local itemLink = GetItemLink(self.bagId, self.slotIndex)
-    local traitType = GetItemLinkTraitInfo(itemLink)
+    slotData.itemLink = slotData.itemLink or GetItemLink(self.bagId, self.slotIndex)
+    slotData.itemTraitType = slotData.itemTraitType or GetItemTrait(self.bagId, self.slotIndex)
     if self:IsFcoisResearchMarked() then
-        return traitType
+        return slotData
     end
-    local itemTraitTypeCategory = GetItemTraitTypeCategory(itemTraitType)
-    local itemStyle = GetItemLinkItemStyle(itemLink)
-    if ar.styledCategories[itemTraitTypeCategory] and itemStyle == ITEMSTYLE_NONE then 
+    slotData.itemTraitTypeCategory = slotData.itemTraitTypeCategory or GetItemTraitTypeCategory(slotData.itemTraitType)
+    slotData.itemStyle = slotData.itemStyle or GetItemLinkItemStyle(slotData.itemLink)
+    if ar.styledCategories[slotData.itemTraitTypeCategory] and slotData.itemStyle == ITEMSTYLE_NONE then 
         return
     end
-    if invalidTraits[traitType] then
+    if invalidTraits[slotData.itemTraitType] then
         return
     end
-    local quality = GetItemLinkQuality(itemLink)
-    local craftSkill = self:GetItemLinkCraftSkill(itemLink)
-    if not craftSkill or not ar.craftSkills[craftSkill] then
+    slotData.craftSkill = slotData.craftSkill or self:GetItemLinkCraftSkill(slotData.itemLink)
+    if not slotData.craftSkill or not ar.craftSkills[slotData.craftSkill] then
         return
     end
-    if quality > ar.settings.maxQuality[craftSkill] or (ar.styledCategories[itemTraitTypeCategory] and not self.settings.styles[itemStyle]) then
+    if slotData.quality > ar.settings.maxQuality[slotData.craftSkill] or (ar.styledCategories[slotData.itemTraitTypeCategory] and not ar.settings.styles[slotData.itemStyle]) then
         return
     end
-    local hasSet, _, _, _, _, setId = GetItemLinkSetInfo(itemLink)
+    local hasSet, _, _, _, _, setId = GetItemLinkSetInfo(slotData.itemLink)
+    slotData.hasSet = hasSet
+    slotData.setId = setId
     if hasSet and (not LibSets or not ar.settings.sets or not ar.settings.setsAllowed or not ar.settings.sets[setId]) then
         return
     end
-    return traitType
+    return slotData
 end
