@@ -311,7 +311,7 @@ function addon:SetupOptions()
 
         for i = 1, GetNumValidItemStyles() do
           local itemStyleId = GetValidItemStyleId(i)
-          local itemStyleName = GetItemStyleName(itemStyleId)
+          local itemStyleName = zo_strformat("<<C:1>>", GetItemStyleName(itemStyleId))
           if not self.invalidStyles[itemStyleId] then
               table.insert(self.styleOptions, itemStyleName)
               itemStyleIdsByName[itemStyleName] = itemStyleId
