@@ -68,17 +68,14 @@ function addon:SetupOptions()
     -- Populate the dropdown choices
     self.traitChoices = { }
     self.traitChoicesValues = { }
-    self.defaults.traitResearchOrder = { }
     for researchCategory, config in pairs(self.traitConfig) do
         if config.name then
             self.traitChoicesValues[researchCategory] = { 0 }
             self.traitChoices[researchCategory] = { NONE }
-            self.defaults.traitResearchOrder[researchCategory] = { }
             for _, types in ipairs(config.types) do
                 for traitIndex=types.min,types.max do
                     table.insert(self.traitChoicesValues[researchCategory], traitIndex)
                     table.insert(self.traitChoices[researchCategory], GetItemTraitTypeName(traitIndex))
-                    table.insert(self.defaults.traitResearchOrder[researchCategory], traitIndex)
                 end
             end
         end

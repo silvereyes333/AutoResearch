@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "2.1.1",
+    version = "2.1.2",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -62,26 +62,26 @@ AutoResearch = {
         },
         traitResearchOrder = {
             ["weapons"] = {
-                ITEM_TRAIT_TYPE_WEAPON_SHARPENED,
-                ITEM_TRAIT_TYPE_WEAPON_PRECISE,
                 ITEM_TRAIT_TYPE_WEAPON_INFUSED,
+                ITEM_TRAIT_TYPE_WEAPON_SHARPENED,
+                ITEM_TRAIT_TYPE_WEAPON_NIRNHONED,
+                ITEM_TRAIT_TYPE_WEAPON_PRECISE,
                 ITEM_TRAIT_TYPE_WEAPON_DECISIVE,
                 ITEM_TRAIT_TYPE_WEAPON_CHARGED,
                 ITEM_TRAIT_TYPE_WEAPON_DEFENDING,
                 ITEM_TRAIT_TYPE_WEAPON_TRAINING,
                 ITEM_TRAIT_TYPE_WEAPON_POWERED,
-                ITEM_TRAIT_TYPE_WEAPON_NIRNHONED,
             },
             ["armor"] = {
                 ITEM_TRAIT_TYPE_ARMOR_DIVINES,
-                ITEM_TRAIT_TYPE_ARMOR_INFUSED,
                 ITEM_TRAIT_TYPE_ARMOR_IMPENETRABLE,
-                ITEM_TRAIT_TYPE_ARMOR_STURDY,
+                ITEM_TRAIT_TYPE_ARMOR_INFUSED,
                 ITEM_TRAIT_TYPE_ARMOR_WELL_FITTED,
+                ITEM_TRAIT_TYPE_ARMOR_STURDY,
+                ITEM_TRAIT_TYPE_ARMOR_NIRNHONED,
                 ITEM_TRAIT_TYPE_ARMOR_REINFORCED,
                 ITEM_TRAIT_TYPE_ARMOR_TRAINING,
                 ITEM_TRAIT_TYPE_ARMOR_PROSPEROUS,
-                ITEM_TRAIT_TYPE_ARMOR_NIRNHONED,
             },
             ["jewelry"] = {
                 ITEM_TRAIT_TYPE_JEWELRY_ARCANE,
@@ -89,10 +89,10 @@ AutoResearch = {
                 ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY,
                 ITEM_TRAIT_TYPE_JEWELRY_TRIUNE,
                 ITEM_TRAIT_TYPE_JEWELRY_SWIFT,
+                ITEM_TRAIT_TYPE_JEWELRY_INFUSED,
                 ITEM_TRAIT_TYPE_JEWELRY_HEALTHY,
                 ITEM_TRAIT_TYPE_JEWELRY_PROTECTIVE,
                 ITEM_TRAIT_TYPE_JEWELRY_HARMONY,
-                ITEM_TRAIT_TYPE_JEWELRY_INFUSED,
             },
         },
         styles = {
