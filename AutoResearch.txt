@@ -1,8 +1,8 @@
 ## Title: Auto Research
 ## Author: silvereyes
 ## Description: Automatically starts trait research when opening craft stations.
-## Version: 2.1.2
-## APIVersion: 100029 100030
+## Version: 2.2.0
+## APIVersion: 100030
 ## DependsOn: LibSavedVars LibAddonMenu-2.0 LibCustomMenu
 ## OptionalDependsOn: DolgubonsLazyWritCreator FCOItemSaver LibSets
 ## SavedVariables: AutoResearch_Account

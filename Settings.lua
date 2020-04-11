@@ -411,10 +411,10 @@ function addon:SetupOptions()
                             table.insert(setNames[setType], setName)
                         end
                     else
-                        d("setInfo.setType is empty")
+                        --d("setInfo.setType is empty")
                     end
                 else
-                    d("setInfo is empty")
+                    --d("setInfo is empty")
                 end
             end
             for _, setTypeNames in pairs(setNames) do
