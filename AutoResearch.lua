@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "2.2.0",
+    version = "2.3.0",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -55,10 +55,10 @@ AutoResearch = {
     defaults = {
         bags = AUTORESEARCH_BAG_BOTH,
         maxQuality = {
-            [CRAFTING_TYPE_BLACKSMITHING]   = ITEM_QUALITY_ARCANE,
-            [CRAFTING_TYPE_CLOTHIER]        = ITEM_QUALITY_ARCANE,
-            [CRAFTING_TYPE_WOODWORKING]     = ITEM_QUALITY_ARCANE,
-            [CRAFTING_TYPE_JEWELRYCRAFTING] = ITEM_QUALITY_ARCANE,
+            [CRAFTING_TYPE_BLACKSMITHING]   = ITEM_QUALITY_ARCANE or ITEM_FUNCTIONAL_QUALITY_ARCANE,
+            [CRAFTING_TYPE_CLOTHIER]        = ITEM_QUALITY_ARCANE or ITEM_FUNCTIONAL_QUALITY_ARCANE,
+            [CRAFTING_TYPE_WOODWORKING]     = ITEM_QUALITY_ARCANE or ITEM_FUNCTIONAL_QUALITY_ARCANE,
+            [CRAFTING_TYPE_JEWELRYCRAFTING] = ITEM_QUALITY_ARCANE or ITEM_FUNCTIONAL_QUALITY_ARCANE,
         },
         traitResearchOrder = {
             ["weapons"] = {
