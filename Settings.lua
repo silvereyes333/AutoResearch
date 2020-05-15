@@ -104,6 +104,10 @@ function addon:SetupOptions()
                        :Version(2, savedVarsUpdateVersion2)
                        :RemoveSettings(3, "dataVersion")
     
+    if LSV_Data.EnableDefaultsTrimming then
+        self.settings:EnableDefaultsTrimming()
+    end
+    
     self.chatColor = ZO_ColorDef:New(unpack(self.settings.chatColor))
     refreshPrefix()
 
@@ -200,7 +204,10 @@ function addon:SetupOptions()
                                   self.chatColor = ZO_ColorDef:New(r, g, b, a)
                                   refreshPrefix()
                               end,
-                    default = self.defaults.chatColor,
+                    default = function()
+                                  local r, g, b, a = unpack(self.defaults.chatColor)
+                                  return {r=r, g=g, b=b, a=a}
+                              end,
                     disabled = function() return self.settings.chatUseSystemColor end,
                 },
                 -- Old Prefix Colors
