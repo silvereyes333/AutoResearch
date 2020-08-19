@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "2.3.1",
+    version = "2.3.2",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -110,6 +110,7 @@ AutoResearch = {
           [ITEMSTYLE_AREA_REACH]        = true,
           [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
         },
+        setsAllowed = true,
         sets = {},
         chatColor = { 1, 1, 1, 1 },
         shortPrefix = true,
