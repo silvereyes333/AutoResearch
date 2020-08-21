@@ -6,7 +6,7 @@ AUTORESEARCH_BAG_BOTH = 3
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "2.3.2",
+    version = "2.3.3",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -138,7 +138,6 @@ AutoResearch = {
     debugMode = false,
 }
 local addon = AutoResearch
-local libLazyCraftingName = "LibLazyCrafting"
 --[[ Outputs a colorized message to chat with the Auto Research prefix ]]--
 function addon:Print(input)
     local output = self.prefix .. input .. self.suffix
@@ -192,10 +191,9 @@ local function TryWritCreator(craftSkill)
             d("Old version of Dolgubon's Lazy Writ Crafter detected. Please update your addons.")
         end
 	end
-    local LLC = LibLazyCrafting or LibStub("LibLazyCrafting", true)
-    if LLC and LLC.craftInteract then
+    if LibLazyCrafting and LibLazyCrafting.craftInteract then
         self:Debug("Calling LibLazyCrafting.craftInteract(1, "..tostring(craftSkill)..")")
-        LLC.craftInteract(1, craftSkill)
+        LibLazyCrafting.craftInteract(1, craftSkill)
     end
 end
 
@@ -439,8 +437,7 @@ local function OnAddonLoaded(event, name)
     if WritCreater then
         EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFTING_STATION_INTERACT)
     end
-    local LLC = LibLazyCrafting or LibStub("LibLazyCrafting", true)
-    if LLC then
+    if LibLazyCrafting then
         EVENT_MANAGER:UnregisterForEvent("LibLazyCrafting", EVENT_CRAFTING_STATION_INTERACT)
     end
     
