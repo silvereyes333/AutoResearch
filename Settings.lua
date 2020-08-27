@@ -400,9 +400,9 @@ function addon:SetupOptions()
             local setNameIds = { isOverland = {}, isDungeon = {}, isMonster = {}, isCrafted = {} }
             
             for _, setId in ipairs(setIds) do
-                local setName = LibSets.GetSetName(setId)
+                local setName = LibSets.GetSetName(setId) or LibSets.GetSetName(setId, "en")
                 local setInfo = LibSets.GetSetInfo(setId)
-                if setInfo then
+                if setInfo and setName then
                     if setInfo.setTypes then
                         for setType, isSetType in pairs(setInfo.setTypes) do
                             if isSetType and setName then
