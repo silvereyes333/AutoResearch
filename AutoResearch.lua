@@ -3,10 +3,15 @@ AUTORESEARCH_BAG_BACKPACK = 1
 AUTORESEARCH_BAG_BANK = 2
 AUTORESEARCH_BAG_BOTH = 3
 
+-- All/None/Select
+AUTORESEARCH_ENABLE_NONE = 0
+AUTORESEARCH_ENABLE_ALL = 1
+AUTORESEARCH_ENABLE_SELECTED = 2
+
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "2.3.4",
+    version = "2.4.0",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -110,8 +115,14 @@ AutoResearch = {
           [ITEMSTYLE_AREA_REACH]        = true,
           [ITEMSTYLE_ENEMY_PRIMITIVE]   = true,
         },
-        setsAllowed = true,
+        stylesEnabled = AUTORESEARCH_ENABLE_SELECTED,
         sets = {},
+        setsEnabled = {
+            isMonster = AUTORESEARCH_ENABLE_SELECTED,
+            isDungeon = AUTORESEARCH_ENABLE_SELECTED,
+            isCrafted = AUTORESEARCH_ENABLE_SELECTED,
+            isOverland = AUTORESEARCH_ENABLE_SELECTED,
+        },
         chatColor = { 1, 1, 1, 1 },
         shortPrefix = true,
         chatUseSystemColor = true,
@@ -135,9 +146,31 @@ AutoResearch = {
         [ITEMSTYLE_NONE]      = true, -- No style
         [ITEMSTYLE_UNIVERSAL] = true, -- Crown Mimic Stone / Universal style
     },
+    noneAllSelectChoices = {
+        GetString(SI_CRAFTING_INVALID_ITEM_STYLE), -- None
+        GetString(SI_ITEMFILTERTYPE0), -- All
+        GetString(SI_GAMEPAD_SELECT_OPTION), -- Select
+    },
+    noneAllSelectChoicesValues = {
+        AUTORESEARCH_ENABLE_NONE,
+        AUTORESEARCH_ENABLE_ALL,
+        AUTORESEARCH_ENABLE_SELECTED
+    },
+    allSelectChoices = {
+        GetString(SI_ITEMFILTERTYPE0), -- All
+        GetString(SI_GAMEPAD_SELECT_OPTION), -- Select
+    },
+    allSelectChoicesValues = {
+        AUTORESEARCH_ENABLE_ALL,
+        AUTORESEARCH_ENABLE_SELECTED
+    },
     debugMode = false,
 }
 local addon = AutoResearch
+
+
+
+
 --[[ Outputs a colorized message to chat with the Auto Research prefix ]]--
 function addon:Print(input)
     local output = self.prefix .. input .. self.suffix
@@ -386,7 +419,7 @@ local function AddContextMenu(inventorySlot, slotActions)
     if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON then return end
     local subMenu = {}
     local equipType = GetItemLinkEquipType(itemLink)
-    if equipType ~= EQUIP_TYPE_NECK and equipType ~= EQUIP_TYPE_RING then
+    if equipType ~= EQUIP_TYPE_NECK and equipType ~= EQUIP_TYPE_RING and self.settings.stylesEnabled == AUTORESEARCH_ENABLE_SELECTED then
         local itemStyle = GetItemLinkItemStyle(itemLink)
         if self.invalidStyles[itemStyle] then return end
         local itemStyleName = GetItemStyleName(itemStyle)
@@ -400,18 +433,23 @@ local function AddContextMenu(inventorySlot, slotActions)
             itemType = MENU_ADD_OPTION_CHECKBOX,
         })
     end
-    if LibSets and self.settings.setsAllowed and self.settings.sets then
+    if LibSets and self.settings.sets then
         local hasSet, setName, _, _, _, setId = GetItemLinkSetInfo(itemLink)
         if hasSet then
-            local toggleSet = function() self.settings.sets[setId] = not self.settings.sets[setId] end
-            table.insert(subMenu, {
-                label = "  " .. zo_strformat(GetString(SI_INVENTORY_TRAIT_STATUS_TOOLTIP),
-                                     GetString(SI_AUTORESEARCH_SETS),
-                                     tostring(setName)),
-                callback = toggleSet,
-                checked = function() return self.settings.sets[setId] end,
-                itemType = MENU_ADD_OPTION_CHECKBOX,
-            })
+            local libSetsType = LibSets.GetSetType(setId)
+            local setType = self.setTypeMap[libSetsType]
+            local setsEnabled = setType ~= nil and self.settings.setsEnabled[setType] or AUTORESEARCH_ENABLE_NONE
+            if setsEnabled == AUTORESEARCH_ENABLE_SELECTED then
+                local toggleSet = function() self.settings.sets[setId] = not self.settings.sets[setId] end
+                table.insert(subMenu, {
+                    label = "  " .. zo_strformat(GetString(SI_INVENTORY_TRAIT_STATUS_TOOLTIP),
+                                         GetString(SI_AUTORESEARCH_SETS),
+                                         tostring(setName)),
+                    callback = toggleSet,
+                    checked = function() return self.settings.sets[setId] end,
+                    itemType = MENU_ADD_OPTION_CHECKBOX,
+                })
+            end
         end
     end
     if #subMenu > 0 then

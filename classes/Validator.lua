@@ -116,14 +116,26 @@ function class.Validator:Validate()
     if not slotData.craftSkill or not ar.craftSkills[slotData.craftSkill] then
         return
     end
-    if slotData.quality > ar.settings.maxQuality[slotData.craftSkill] or (ar.styledCategories[slotData.itemTraitTypeCategory] and not ar.settings.styles[slotData.itemStyle]) then
+    if slotData.quality > ar.settings.maxQuality[slotData.craftSkill] or (ar.stylesEnabled == AUTORESEARCH_ENABLE_SELECTED and ar.styledCategories[slotData.itemTraitTypeCategory] and not ar.settings.styles[slotData.itemStyle]) then
         return
     end
     local hasSet, _, _, _, _, setId = GetItemLinkSetInfo(slotData.itemLink)
     slotData.hasSet = hasSet
     slotData.setId = setId
-    if hasSet and (not LibSets or not ar.settings.sets or not ar.settings.setsAllowed or not ar.settings.sets[setId]) then
-        return
+    if hasSet then
+        if not LibSets or not ar.settings.sets then
+            return
+        end
+        local libSetsSetType = LibSets.GetSetType(setId)
+        local setType = libSetsSetType ~= nil and ar.setTypeMap[libSetsSetType]
+        local setsEnabled = setType ~= nil and ar.settings.setsEnabled[setType] or AUTORESEARCH_ENABLE_NONE
+        if setsEnabled == AUTORESEARCH_ENABLE_NONE then
+            return
+        end
+        if setsEnabled == AUTORESEARCH_ENABLE_SELECTED and not ar.settings.sets[setId] then
+            return
+        end
     end
+    
     return slotData
 end

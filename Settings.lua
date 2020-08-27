@@ -4,7 +4,7 @@ local COLOR_DISABLED = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_TE
 local NONE = COLOR_DISABLED:Colorize(zo_strformat(GetString(SI_QUEST_TYPE_FORMAT), GetString(SI_ITEMTYPE0)))
 local INDENT = "|t420%:100%:art/icons/placeholder/icon_blank.dds|t"
 local LSV = LibSavedVars or LibStub("LibSavedVars")
-local savedVarsUpdateVersion2, refreshPrefix
+local savedVarsUpdateVersion2, savedVarsUpdateVersion4, refreshPrefix
 
 ----------------- Settings -----------------------
 
@@ -103,6 +103,7 @@ function addon:SetupOptions()
                        :AddAccountWideToggle(self.name .. "_Account")
                        :Version(2, savedVarsUpdateVersion2)
                        :RemoveSettings(3, "dataVersion")
+                       :Version(4, savedVarsUpdateVersion4)
     
     if LSV_Data.EnableDefaultsTrimming then
         self.settings:EnableDefaultsTrimming()
@@ -307,7 +308,18 @@ function addon:SetupOptions()
     
     --[[ Styles to Research ]]--
     do
-        local controls = {}
+        local controls = {
+            {
+                type = "dropdown",
+                name = GetString(SI_ADDONLOADSTATE2),
+                choices = self.allSelectChoices,
+                choicesValues = self.allSelectChoicesValues,
+                getFunc = function() return self.settings.stylesEnabled end,
+                setFunc = function(value) self.settings.stylesEnabled = value end,
+                width = "full",
+                default = self.defaults.stylesEnabled,
+            }
+        }
         
         self.styleOptions = {}
         self.styleOptionValues = {}
@@ -333,6 +345,7 @@ function addon:SetupOptions()
                     setFunc = function(value) self.settings.styles[itemStyleId] = value end,
                     width = "full",
                     default = self.defaults.styles[itemStyleId],
+                    disabled = function() return self.settings.stylesEnabled ~= AUTORESEARCH_ENABLE_SELECTED end,
                 })
         end
         
@@ -354,46 +367,27 @@ function addon:SetupOptions()
         end
         
         if setIds and next(setIds) then
-            table.insert(controls, 
-                {
-                    type = "checkbox",
-                    name = GetString(SI_ADDONLOADSTATE2),
-                    getFunc = function() return self.settings.setsAllowed end,
-                    setFunc = function(value) self.settings.setsAllowed = value end,
-                    width = "full",
-                    default = false,
-                })
-            table.insert(controls, 
-                {
-                    type = "divider",
-                    width = "full",
-                })
               
             -- LibSets >= 0.06
-            local setTypeMap
-            if LIBSETS_SETTYPE_ARENA then
-                setTypeMap = {
-                    [LIBSETS_SETTYPE_ARENA] = "isDungeon",
-                    [LIBSETS_SETTYPE_BATTLEGROUND] = "isOverland",
-                    [LIBSETS_SETTYPE_CRAFTED] = "isCrafted",
-                    [LIBSETS_SETTYPE_CYRODIIL] = "isOverland",
-                    [LIBSETS_SETTYPE_DAILYRANDOMDUNGEONANDICREWARD] = "isOverland",
-                    [LIBSETS_SETTYPE_DUNGEON] = "isDungeon",
-                    [LIBSETS_SETTYPE_IMPERIALCITY] = "isOverland",
-                    [LIBSETS_SETTYPE_MONSTER] = "isMonster",
-                    [LIBSETS_SETTYPE_OVERLAND] = "isOverland",
-                    [LIBSETS_SETTYPE_SPECIAL] = "isDungeon",
-                    [LIBSETS_SETTYPE_TRIAL] = "isDungeon",
-                }
-                local invertedSetIds = {}
-                for setId, _ in pairs(setIds) do
-                    table.insert(invertedSetIds, setId)
-                end
-                setIds = invertedSetIds
-                invertedSetIds = nil
-            else
-                setTypeMap = {}
+            self.setTypeMap = {
+                [LIBSETS_SETTYPE_ARENA] = "isDungeon",
+                [LIBSETS_SETTYPE_BATTLEGROUND] = "isOverland",
+                [LIBSETS_SETTYPE_CRAFTED] = "isCrafted",
+                [LIBSETS_SETTYPE_CYRODIIL] = "isOverland",
+                [LIBSETS_SETTYPE_DAILYRANDOMDUNGEONANDICREWARD] = "isOverland",
+                [LIBSETS_SETTYPE_DUNGEON] = "isDungeon",
+                [LIBSETS_SETTYPE_IMPERIALCITY] = "isOverland",
+                [LIBSETS_SETTYPE_MONSTER] = "isMonster",
+                [LIBSETS_SETTYPE_OVERLAND] = "isOverland",
+                [LIBSETS_SETTYPE_SPECIAL] = "isDungeon",
+                [LIBSETS_SETTYPE_TRIAL] = "isDungeon",
+            }
+            local invertedSetIds = {}
+            for setId, _ in pairs(setIds) do
+                table.insert(invertedSetIds, setId)
             end
+            setIds = invertedSetIds
+            invertedSetIds = nil
             self.setIds = setIds
               
             local setNames = { isOverland = {}, isDungeon = {}, isMonster = {}, isCrafted = {} }
@@ -412,8 +406,8 @@ function addon:SetupOptions()
                             end
                         end
                     elseif setInfo.setType then
-                        if setTypeMap[setInfo.setType] then
-                            local setType = setTypeMap[setInfo.setType]
+                        if self.setTypeMap[setInfo.setType] then
+                            local setType = self.setTypeMap[setInfo.setType]
                             setNameIds[setType][setName] = setId
                             table.insert(setNames[setType], setName)
                         end
@@ -441,7 +435,18 @@ function addon:SetupOptions()
             for _, setTypeCategory in ipairs(setTypeCategories) do
                 local categoryControls = {}
                 for _, setType in ipairs(setTypes[setTypeCategory]) do
-                    local setTypeControls = {}
+                    local setTypeControls = {
+                        {
+                            type = "dropdown",
+                            name = GetString(SI_ADDONLOADSTATE2),
+                            choices = self.noneAllSelectChoices,
+                            choicesValues = self.noneAllSelectChoicesValues,
+                            getFunc = function() return self.settings.setsEnabled[setType] end,
+                            setFunc = function(value) self.settings.setsEnabled[setType] = value end,
+                            width = "full",
+                            default = self.defaults.setsEnabled[setType],
+                        }
+                    }
                     for _, setName in ipairs(setNames[setType]) do
                         local setId = setNameIds[setType][setName]
                         table.insert(setTypeControls, 
@@ -452,7 +457,7 @@ function addon:SetupOptions()
                                 setFunc = function(value) self.settings.sets[setId] = value end,
                                 width = "full",
                                 default = false,
-                                disabled = function() return not self.settings.setsAllowed end,
+                                disabled = function() return self.settings.setsEnabled[setType] ~= AUTORESEARCH_ENABLE_SELECTED end,
                             })
                     end
                     table.insert(categoryControls,
@@ -461,7 +466,6 @@ function addon:SetupOptions()
                             type = "submenu",
                             name = setTypeTitles[setType],
                             controls = setTypeControls,
-                            disabled = function() return not self.settings.setsAllowed end,
                         })
                 end
                 table.insert(controls,
@@ -470,7 +474,6 @@ function addon:SetupOptions()
                     type = "submenu",
                     name = setTypeCategoryTitles[setTypeCategory],
                     controls = categoryControls,
-                    disabled = function() return not self.settings.setsAllowed end,
                 })
             end
             
@@ -478,7 +481,7 @@ function addon:SetupOptions()
             table.insert(controls, 
                 {
                     type = "description",
-                    text = ZO_ERROR_COLOR:Colorize(zo_strformat(GetString(SI_ADDON_MANAGER_DEPENDENCIES), "LibSets >= 0.0.5")),
+                    text = ZO_ERROR_COLOR:Colorize(zo_strformat(GetString(SI_TOOLTIP_ITEM_VALUE_FORMAT), GetString(SI_ADDON_MANAGER_DEPENDENCIES), "LibSets >= 0.0.6")),
                     width = "full",
                 })
         end
@@ -525,4 +528,21 @@ function savedVarsUpdateVersion2(sv)
     if sv.researchLineOrder then
         sv.researchLineOrder[-1] = nil
     end
+end
+
+function savedVarsUpdateVersion4(sv)
+    local self = addon
+    local defaultValue
+    if sv.setsAllowed == false then
+        defaultValue = AUTORESEARCH_ENABLE_NONE
+    else
+        defaultValue = AUTORESEARCH_ENABLE_SELECTED
+    end
+    sv.setsEnabled = {
+      isMonster = defaultValue,
+      isDungeon = defaultValue,
+      isCrafted = defaultValue,
+      isOverland = defaultValue
+    }
+    sv.setsAllowed = nil
 end
