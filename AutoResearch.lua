@@ -11,7 +11,7 @@ AUTORESEARCH_ENABLE_SELECTED = 2
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "2.4.0",
+    version = "2.4.1",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -413,8 +413,14 @@ end
 
 local function AddContextMenu(inventorySlot, slotActions)
     local self = addon
-    local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    local itemLink = GetItemLink(bagId, slotIndex)
+    local itemLink = inventorySlot.itemLink
+    if not itemLink then
+        local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+        if not bagId then
+            return
+        end
+        itemLink = GetItemLink(bagId, slotIndex)
+    end
     local itemType = GetItemLinkItemType(itemLink)
     if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON then return end
     local subMenu = {}
