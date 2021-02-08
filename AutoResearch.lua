@@ -11,7 +11,7 @@ AUTORESEARCH_ENABLE_SELECTED = 2
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "2.4.1",
+    version = "2.4.2",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
