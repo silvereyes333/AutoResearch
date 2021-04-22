@@ -74,13 +74,13 @@ function class.Validator:IsFcoisResearchMarked()
     end
 end
 
---[[ If FCOIS 1.0+ is installed, then returns true for slots that are marked with the lock icon. 
+--[[ If FCOIS 1.0+ is installed, then returns true for slots that have research protection enabled in FCO ItemSaver
      Otherwise, returns nil. ]]--
-function class.Validator:IsFcoisLocked()
+function class.Validator:IsFcoisResearchLocked()
     if not FCOIS or not FCOIS.IsMarked then
         return
     end
-    if FCOIS.IsMarked(self.bagId, self.slotIndex, FCOIS_CON_ICON_LOCK) then
+    if FCOIS.IsResearchLocked(self.bagId, self.slotIndex) then
         return true
     end
 end
@@ -96,7 +96,7 @@ function class.Validator:Validate()
     if not slotData or slotData.isPlayerLocked then 
         return
     end
-    if self:IsFcoisLocked() then
+    if self:IsFcoisResearchLocked() then
         return
     end
     slotData.itemLink = slotData.itemLink or GetItemLink(self.bagId, self.slotIndex)
