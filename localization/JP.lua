@@ -9,6 +9,7 @@ local strings = {
     ["SI_AUTORESEARCH_COLORED_PREFIX_TOOLTIP"] = "チャットメッセージのプレフィックスの表示に、チャットメッセージの色ではなく、AutoResearch 1の青色（|c99CCEFAutoResearch|rまたは|c99CCEFAR|r）を使用します。",
     ["SI_AUTORESEARCH_CHAT_USE_SYSTEM_COLOR"]  = "システムメッセージと同じ色を使用する",
     ["SI_AUTORESEARCH_CHAT_COLOR"]             = "チャットメッセージの色",
+    ["SI_AUTORESEARCH_WORD_DELIMITER"]         = "",
 }
 
 -- Overwrite English strings

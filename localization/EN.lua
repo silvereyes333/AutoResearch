@@ -13,4 +13,5 @@ AUTORESEARCH_STRINGS = {
     ["SI_AUTORESEARCH_COLORED_PREFIX_TOOLTIP"] = "Causes the prefix for chat messages to use the blue AutoResearch 1 color (i.e. |c99CCEFAutoResearch|r or |c99CCEFAR|r) instead of the Chat Message Color setting.",
     ["SI_AUTORESEARCH_CHAT_USE_SYSTEM_COLOR"]  = "Use Default System Message Color",
     ["SI_AUTORESEARCH_CHAT_COLOR"]             = "Chat Message Color",
+    ["SI_AUTORESEARCH_WORD_DELIMITER"]         = " ",
 }

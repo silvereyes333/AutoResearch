@@ -481,7 +481,7 @@ function addon:SetupOptions()
             table.insert(controls, 
                 {
                     type = "description",
-                    text = ZO_ERROR_COLOR:Colorize(zo_strformat(GetString(SI_TOOLTIP_ITEM_VALUE_FORMAT), GetString(SI_ADDON_MANAGER_DEPENDENCIES), "LibSets >= 0.0.6")),
+                    text = ZO_ERROR_COLOR:Colorize(GetString(SI_ADDON_MANAGER_DEPENDENCIES) .. GetString(SI_AUTORESEARCH_WORD_DELIMITER) .. "LibSets≥0.0.6"),
                     width = "full",
                 })
         end
