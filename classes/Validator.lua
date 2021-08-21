@@ -93,7 +93,11 @@ end
 --[[ If the item slot for this instance is valid, returns the item type.  Otherwise, returns nil. ]]--
 function class.Validator:Validate()
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(self.bagId, self.slotIndex)
-    if not slotData or slotData.isPlayerLocked then 
+    if not slotData
+       or slotData.isPlayerLocked
+       or slotData.traitInformation == ITEM_TRAIT_INFORMATION_RETRAITED
+       or slotData.traitInformation == ITEM_TRAIT_INFORMATION_RECONSTRUCTED
+    then 
         return
     end
     if self:IsFcoisLocked() then
