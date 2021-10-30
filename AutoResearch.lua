@@ -11,7 +11,7 @@ AUTORESEARCH_ENABLE_SELECTED = 2
 AutoResearch = {
     name = "AutoResearch",
     title = "Auto Research",
-    version = "3.0.5",
+    version = "3.0.6",
     author = "silvereyes",
     
     -- Global details about armor, weapon TraitType value ranges.
@@ -196,10 +196,22 @@ local function OnUIError(errorFrame, errorString)
     end
     return origErrorFrame(errorFrame, errorString)
 end
+local function UnregisterEvents()
+    local self = addon
+    EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_CRAFT_COMPLETED)
+    if not self.bagIds then
+        return
+    end
+    for _, bagId in ipairs(self.bagIds) do
+        local eventScope = self.name .. "_Bag" .. tostring(bagId)
+        EVENT_MANAGER:UnregisterForEvent(eventScope, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    end
+    self.bagIds = nil
+end
 
 local function EndInteraction()
     local self = addon
-    EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_CRAFT_COMPLETED)
+    UnregisterEvents()
     self.researchState = nil
     self:Debug("self.researchState = "..tostring(self.researchState))
 end
@@ -207,7 +219,7 @@ end
 --[[ Ends the auto-research process and starts up Dolgubon's Lazy Writ Crafter, if enabled ]]--
 local function TryWritCreator(craftSkill)
     local self = addon
-    EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_CRAFT_COMPLETED)
+    UnregisterEvents()
     -- Small delay to prevent last extraction failed message
     self.researchState = "stopping"
     self:Debug("self.researchState = "..tostring(self.researchState))
@@ -273,7 +285,7 @@ local function ResearchNext(craftSkill)
     -- Check for full research slots
     if self.queue:AreResearchSlotsFull() then
         self:Debug("Research slots are all full. Try Writ Creator next.")
-		TryWritCreator(craftSkill)
+		    TryWritCreator(craftSkill)
         return
     end
     
@@ -300,6 +312,15 @@ local function OnCraftCompleted(eventCode, craftSkill)
     
     -- Start researching the highest priority item from the cache
     ResearchNext(craftSkill)
+end
+
+--[[ Event handler for when an existing item in a research bag is changed ]]--
+local function OnInventorySingleSlotUpdated(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, inventoryUpdateReason, stackCountChange)
+    local self = addon
+    -- if the stack size decreases, assume a decon event and 
+    if stackCountChange < 0 then
+        self.queue:Remove(bagId, slotIndex)
+    end
 end
 
 local OnSmithingTraitResearchCanceled
@@ -360,6 +381,7 @@ local function Start(eventCode, craftSkill, sameStation)
     else
         bagIds = { BAG_BANK, BAG_SUBSCRIBER_BANK }
     end
+    self.bagIds = bagIds
     
     -- Scan the bags for researchable items
     self.queue:Fill(bagIds)
@@ -369,9 +391,18 @@ local function Start(eventCode, craftSkill, sameStation)
         EVENT_MANAGER:UnregisterForEvent(WritCreater.name, EVENT_CRAFT_COMPLETED)
     end
     
-    -- Listen for for the research started event
+    -- Listen for the research started event
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_CRAFT_COMPLETED, 
                                    OnCraftCompleted)
+    
+    -- Listen for inventory updates to the researchable bags, so we can remove any deconned items from the queue
+    for _, bagId in ipairs(bagIds) do
+        local eventScope = self.name .. "_Bag" .. tostring(bagId)
+        EVENT_MANAGER:RegisterForEvent(eventScope, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySingleSlotUpdated)
+        EVENT_MANAGER:AddFilterForEvent(eventScope, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+        EVENT_MANAGER:AddFilterForEvent(eventScope, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_IS_NEW_ITEM, false)
+        EVENT_MANAGER:AddFilterForEvent(eventScope, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, bagId)
+    end
     
     -- Start researching the highest priority item from the cache
     ResearchNext(craftSkill)

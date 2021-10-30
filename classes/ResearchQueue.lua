@@ -256,3 +256,18 @@ function class.ResearchQueue:GetNext()
         end
     end
 end
+
+--[[ Removes the given inventory item from the queue ]]--
+function class.ResearchQueue:Remove(bagId, slotIndex)
+    for _, group in ipairs(self.data) do
+        for researchOrder, slots in ipairs(group.slotsByResearchOrder) do
+            for i = #slots, 1, -1 do
+                local slot = slots[i]
+                if slot.bagId == bagId and slot.slotIndex == slotIndex then
+                    table.remove(slots, i)
+                    return
+                end
+            end
+        end
+    end
+end
